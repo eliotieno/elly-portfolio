@@ -1,0 +1,104 @@
+---
+import 'maplibre-gl/dist/maplibre-gl.css';
+import data from '../../public/data/qa.geojson?raw';
+
+const rows = JSON.parse(data).features.map((f) => f.properties);
+const fault = (s) => s.replaceAll('_', ' ');
+---
+
+<section class="demo" data-qa aria-labelledby="qa-h">
+  <div class="demo-head">
+    <h2 class="label" id="qa-h">Rule engine output on its synthetic fault suite</h2>
+    <ul class="controls key">
+      <li><i class="a"></i> Queue A, quick confirm</li>
+      <li><i class="b"></i> Queue B, review</li>
+      <li><i class="c"></i> Queue C, fix</li>
+    </ul>
+  </div>
+  <div class="map" data-map>
+    <noscript><p class="demo-body">The map needs JavaScript. The table below holds the same results.</p></noscript>
+  </div>
+  <div class="scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Polygon</th>
+          <th class="text">Fault planted</th>
+          <th class="text">Flags raised</th>
+          <th>Queue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((r) => (
+            <tr>
+              <td>{r.fg_id}</td>
+              <td class="text">{fault(r.fault)}</td>
+              <td class="text">{r.flags ? r.flags.replaceAll(';', ', ') : 'none'}</td>
+              <td>{r.suggested_queue}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="demo-foot label">
+    {rows.length} generated polygons, each built to trip one check or none. Click a polygon for the engine's note. No real
+    farms.
+  </p>
+</section>
+
+<style>
+  .key i {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-right: 0.35rem;
+    vertical-align: -0.05rem;
+  }
+
+  .key .a {
+    background: #1c6b3c;
+  }
+
+  .key .b {
+    background: #8a8c88;
+  }
+
+  .key .c {
+    background: #121412;
+    outline: 1px solid var(--line);
+  }
+</style>
+
+<script>
+  import { ACCENT, GREY, INK, boundsOf, loadMap, makeMap, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-qa]');
+
+  whenVisible(root, async () => {
+    const [gl, data] = await Promise.all([loadMap(), fetch('/data/qa.geojson').then((r) => r.json())]);
+    const all = data.features.flatMap((f) => f.geometry.coordinates[0]);
+    const map = makeMap(gl, root.querySelector('[data-map]'), boundsOf(all));
+
+    map.on('load', () => {
+      map.addSource('qa', { type: 'geojson', data });
+      const colour = ['match', ['get', 'suggested_queue'], 'A', ACCENT, 'B', GREY, INK];
+      map.addLayer({ id: 'qa-fill', type: 'fill', source: 'qa', paint: { 'fill-color': colour, 'fill-opacity': 0.55 } });
+      map.addLayer({ id: 'qa-line', type: 'line', source: 'qa', paint: { 'line-color': colour, 'line-width': 1.5 } });
+
+      map.on('click', 'qa-fill', (e) => {
+        const p = e.features[0].properties;
+        const box = document.createElement('div');
+        const head = document.createElement('strong');
+        head.textContent = `${p.fg_id}, queue ${p.suggested_queue}`;
+        const note = document.createElement('p');
+        note.textContent = p.flag_notes || 'No flags raised.';
+        box.append(head, note);
+        new gl.Popup({ maxWidth: '18rem' }).setLngLat(e.lngLat).setDOMContent(box).addTo(map);
+      });
+      map.on('mouseenter', 'qa-fill', () => (map.getCanvas().style.cursor = 'pointer'));
+      map.on('mouseleave', 'qa-fill', () => (map.getCanvas().style.cursor = ''));
+    });
+  });
+</script>

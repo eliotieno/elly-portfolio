@@ -1,0 +1,115 @@
+---
+import Base from '../../layouts/Base.astro';
+import { work, more } from '../../data/work.js';
+---
+
+<Base title="Work - Elly Otieno" description="Six case studies and ten shorter projects in GIS, field data systems and dashboards.">
+  <div class="wrap">
+    <header class="head">
+      <h1>Work</h1>
+      <p class="lede">Six case studies with something to try, then shorter notes on the rest.</p>
+    </header>
+
+    <section aria-labelledby="cs-h">
+      <h2 class="label" id="cs-h">Case studies</h2>
+      <ol class="rows">
+        {
+          work.map((w, i) => (
+            <li>
+              <span class="num">{String(i + 1).padStart(2, '0')}</span>
+              <h3>
+                <a href={`/work/${w.slug}/`}>{w.title}</a>
+              </h3>
+              <p>{w.text}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
+
+    <section class="more" aria-labelledby="more-h">
+      <h2 class="label" id="more-h">Shorter projects</h2>
+      <ul class="rows">
+        {
+          more.map((m) => (
+            <li>
+              <span class="label">{m.where}</span>
+              <h3 class="small">{m.title}</h3>
+              <p>{m.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .head {
+    padding-block: clamp(2.5rem, 7vw, 6rem) clamp(2rem, 5vw, 4rem);
+  }
+
+  h1 {
+    font-size: clamp(2.35rem, 6.6vw, 6.25rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+
+  .lede {
+    margin-top: 1.25rem;
+    font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+    line-height: 1.25;
+    max-width: 30ch;
+  }
+
+  .rows {
+    margin-top: 1.25rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .rows li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 3fr);
+    gap: 0.5rem clamp(1rem, 3vw, 3rem);
+    align-items: baseline;
+    padding-block: clamp(1.25rem, 2.5vw, 2rem);
+    border-top: 1px solid var(--line);
+  }
+
+  .num {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    color: var(--accent);
+  }
+
+  h3 {
+    font-size: clamp(1.35rem, 2.4vw, 2rem);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  h3.small {
+    font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+  }
+
+  h3 a {
+    text-decoration: none;
+  }
+
+  .rows p {
+    color: var(--muted);
+    max-width: 60ch;
+  }
+
+  .more {
+    padding-block: var(--section);
+  }
+
+  @media (max-width: 760px) {
+    .rows li {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

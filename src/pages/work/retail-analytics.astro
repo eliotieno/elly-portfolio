@@ -1,0 +1,104 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import RetailDashboard from '../../components/RetailDashboard.astro';
+
+const measures = [
+  ['Total Sales', 'SUM ( Orders[Sales] )'],
+  ['Total Profit', 'SUM ( Orders[Profit] )'],
+  ['Profit Margin %', 'DIVIDE ( SUM ( Orders[Profit] ), SUM ( Orders[Sales] ) )'],
+  ['Orders', 'DISTINCTCOUNT ( Orders[Order ID] )'],
+  ['Customers', 'DISTINCTCOUNT ( Orders[Customer ID] )'],
+  ['Average Order Value', 'DIVIDE ( [Total Sales], [Orders] )'],
+  ['Orders per Customer', 'DIVIDE ( [Orders], [Customers] )'],
+  ['Returned Orders', 'CALCULATE ( [Orders], Orders[Is Returned] = "Yes" )'],
+  ['Return Rate %', 'DIVIDE ( [Returned Orders], [Orders] )'],
+  ['Repeat Customer %', 'DIVIDE ( [Repeat Customers], [Customers] )'],
+  ['Average Days to Ship', 'AVERAGE ( Orders[Days to Ship] )'],
+  ['Median Days to Ship', 'MEDIAN ( Orders[Days to Ship] )'],
+];
+---
+
+<CaseStudy
+  slug="retail-analytics"
+  facts={[
+    ['Data', 'Public Superstore sample: about 10,000 order lines, plus returns and regional managers'],
+    ['Tools', 'Power BI Desktop, Power Query, DAX'],
+    ['Report', 'Six pages, each with a desktop and a phone layout'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        The brief asked for three dashboards from one retail workbook: one for management, one for regional
+        representatives and one at state level. It listed what each had to show, down to top and bottom products by
+        both sales and profit.
+      </p>
+      <p>
+        My first build met most of it and was hard to read. Four product rankings and the whole shipping analysis
+        shared one page, so each bar chart was 303 pixels wide and long product names were cut off.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I rebuilt it as six pages: a guide page, the management dashboard, two regional pages (sales and customers) and
+        two state pages (products and operations). Splitting the regional and state dashboards in two took the product
+        charts to 618 pixels wide, and the names read.
+      </p>
+      <p>
+        I then checked the report against the brief line by line and closed three gaps. Bottom products by sales were
+        missing. Profit trends were shown by region but not by state, so the management page gained a region and state
+        matrix with a column per year. The returns tables had no return rate, so a product returned on four orders out
+        of twenty looked the same as one returned on four out of four.
+      </p>
+      <p>
+        The first build leaned on implicit totals, so cards read "Count of Customer ID" and nothing defined what an
+        order was. The rebuild has 22 named measures in one table, each defined once and used on every page.
+      </p>
+    </div>
+  </section>
+
+  <RetailDashboard />
+
+  <section class="split">
+    <h2 class="label">Measures</h2>
+    <div class="prose">
+      <p>Twelve of the 22. The rest cover quantities, discounts, repeat customers, year-on-year change and captions.</p>
+      <div class="scroll">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>Measure</th>
+              <th class="text">Definition</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              measures.map(([name, dax]) => (
+                <tr>
+                  <td>{name}</td>
+                  <td class="text">{dax}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I would change</h2>
+    <div class="prose">
+      <p>
+        The report answers what happened. It does not yet flag what needs attention. I would add a short list on the
+        management page of sub-categories that sell well and lose money, since that is the first thing the profit chart
+        shows.
+      </p>
+    </div>
+  </section>
+</CaseStudy>

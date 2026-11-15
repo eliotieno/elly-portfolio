@@ -1,0 +1,137 @@
+---
+import data from '../../public/data/kpi.json';
+---
+
+<section class="demo" data-kpi aria-labelledby="kpi-h">
+  <div class="demo-head">
+    <h2 class="label" id="kpi-h">Overview and visits pages, rebuilt on generated data</h2>
+    <div class="controls">
+      <label>
+        Project unit
+        <select data-unit>
+          <option value="all">All units</option>
+          {data.units.map((u, i) => <option value={i}>{u.name}</option>)}
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="demo-body">
+    <div class="cards" data-cards aria-live="polite"></div>
+    <div class="charts">
+      <figure>
+        <figcaption class="label">Program records by month</figcaption>
+        <div data-chart="months"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Share of farmers visited, by unit</figcaption>
+        <div data-chart="units"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Farmers by time since last visit</figcaption>
+        <div data-chart="recency"></div>
+      </figure>
+    </div>
+    <noscript><p>The charts need JavaScript.</p></noscript>
+  </div>
+  <p class="demo-foot label">
+    Generated farmers, visits and units. A physical visit counts once even when two forms were filled in on the same
+    day. No real records.
+  </p>
+</section>
+
+<script>
+  import { accent, card, num, pct, plotBase, redrawOn, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-kpi]');
+  const el = (name) => root.querySelector(`[data-chart="${name}"]`);
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+
+  whenVisible(root, async () => {
+    const [Plot, data] = await Promise.all([import('@observablehq/plot'), fetch('/data/kpi.json').then((r) => r.json())]);
+    const select = root.querySelector('[data-unit]');
+    const dates = data.months.map((m) => new Date(`${m}-01`));
+
+    function draw() {
+      const picked = select.value === 'all' ? data.units : [data.units[+select.value]];
+      const monthly = (key) => dates.map((_, i) => sum(picked.map((u) => u[key][i])));
+      const nest = monthly('nest');
+      const root_ = monthly('root');
+      const farmers = sum(picked.map((u) => u.farmers));
+      const visited = sum(picked.map((u) => u.visited));
+
+      root.querySelector('[data-cards]').replaceChildren(
+        card('Farmers in scope', num.format(farmers)),
+        card('NEST records', num.format(sum(nest))),
+        card('ROOT records', num.format(sum(root_))),
+        card('Physical visits', num.format(sum(monthly('visits')))),
+        card('Farmers visited', pct(visited / farmers)),
+      );
+
+      const green = accent();
+      el('months').replaceChildren(
+        Plot.plot(
+          plotBase(el('months'), {
+            marginLeft: 44,
+            x: { label: null },
+            y: { label: null, grid: true },
+            color: { domain: ['ROOT', 'NEST'], range: ['currentColor', green], legend: true },
+            marks: [
+              Plot.lineY(
+                dates.flatMap((date, i) => [
+                  { date, n: root_[i], program: 'ROOT' },
+                  { date, n: nest[i], program: 'NEST' },
+                ]),
+                { x: 'date', y: 'n', stroke: 'program', strokeWidth: 1.75 },
+              ),
+              Plot.ruleY([0]),
+            ],
+          }),
+        ),
+      );
+
+      el('units').replaceChildren(
+        Plot.plot(
+          plotBase(el('units'), {
+            height: 320,
+            marginLeft: 60,
+            x: { label: null, percent: true, grid: true, domain: [0, 100] },
+            y: { label: null },
+            marks: [
+              Plot.barX(data.units, {
+                y: 'name',
+                x: (u) => u.visited / u.farmers,
+                fill: (u) => (picked.length === 1 && picked[0] === u ? green : 'currentColor'),
+                fillOpacity: (u) => (picked.length === 1 && picked[0] !== u ? 0.3 : 0.85),
+                sort: { y: '-x' },
+              }),
+            ],
+          }),
+        ),
+      );
+
+      el('recency').replaceChildren(
+        Plot.plot(
+          plotBase(el('recency'), {
+            marginLeft: 44,
+            marginBottom: 40,
+            x: { label: null, domain: data.recencyLabels },
+            y: { label: null, grid: true },
+            marks: [
+              Plot.barY(data.recencyLabels, {
+                x: (label) => label,
+                y: (_, i) => sum(picked.map((u) => u.recency[i])),
+                fill: (label) => (label === 'Never' ? green : 'currentColor'),
+                fillOpacity: 0.85,
+              }),
+              Plot.ruleY([0]),
+            ],
+          }),
+        ),
+      );
+    }
+
+    select.addEventListener('change', draw);
+    redrawOn(root, draw);
+    draw();
+  });
+</script>

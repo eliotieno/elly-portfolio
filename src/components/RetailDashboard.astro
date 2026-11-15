@@ -1,0 +1,159 @@
+---
+import data from '../../public/data/retail.json';
+
+// Profit by region and year, fixed at build time. It is the matrix on the management page.
+const matrix = data.regions.map((region, r) => ({
+  region,
+  years: data.years.map((y) => data.cells.filter((c) => c[0] === y && c[2] === r).reduce((t, c) => t + c[5], 0)),
+}));
+const money = (n) => `$${Math.round(n).toLocaleString('en')}`;
+---
+
+<section class="demo" data-retail aria-labelledby="retail-h">
+  <div class="demo-head">
+    <h2 class="label" id="retail-h">Management page, rebuilt from the public Superstore sample</h2>
+    <div class="controls">
+      <label>
+        Year
+        <select data-year>
+          <option value="all">All years</option>
+          {data.years.map((y) => <option value={y}>{y}</option>)}
+        </select>
+      </label>
+      <label>
+        Region
+        <select data-region>
+          <option value="all">All regions</option>
+          {data.regions.map((r, i) => <option value={i}>{r}</option>)}
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="demo-body">
+    <div class="cards" data-cards aria-live="polite"></div>
+    <div class="charts">
+      <figure>
+        <figcaption class="label">Sales and profit by month</figcaption>
+        <div data-chart="months"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Profit by sub-category</figcaption>
+        <div data-chart="subcats"></div>
+      </figure>
+    </div>
+    <noscript><p>The charts need JavaScript. The table below is static.</p></noscript>
+  </div>
+  <div class="scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Profit by region</th>
+          {data.years.map((y) => <th>{y}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          matrix.map((m) => (
+            <tr>
+              <td>{m.region}</td>
+              {m.years.map((v) => <td>{money(v)}</td>)}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="demo-foot label">Public sample data, aggregated. Not a real company.</p>
+</section>
+
+<script>
+  import { accent, card, num, pct, plotBase, redrawOn, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-retail]');
+  const el = (name) => root.querySelector(`[data-chart="${name}"]`);
+  const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
+  const money = (n) => `$${compact.format(n)}`;
+
+  whenVisible(root, async () => {
+    const [Plot, data] = await Promise.all([import('@observablehq/plot'), fetch('/data/retail.json').then((r) => r.json())]);
+    const year = root.querySelector('[data-year]');
+    const region = root.querySelector('[data-region]');
+
+    function draw() {
+      // cell = [year, month, region index, sub-category index, sales, profit]
+      const cells = data.cells.filter(
+        (c) => (year.value === 'all' || c[0] === +year.value) && (region.value === 'all' || c[2] === +region.value),
+      );
+      const sales = cells.reduce((t, c) => t + c[4], 0);
+      const profit = cells.reduce((t, c) => t + c[5], 0);
+      const [orders, customers] = data.counts[`${year.value}|${region.value === 'all' ? 'all' : data.regions[+region.value]}`];
+
+      root.querySelector('[data-cards]').replaceChildren(
+        card('Total sales', money(sales)),
+        card('Total profit', money(profit)),
+        card('Profit margin', pct(profit / sales)),
+        card('Orders', num.format(orders)),
+        card('Customers', num.format(customers)),
+      );
+
+      const byMonth = new Map();
+      for (const c of cells) {
+        const key = `${c[0]}-${String(c[1]).padStart(2, '0')}-01`;
+        const m = byMonth.get(key) ?? { sales: 0, profit: 0 };
+        m.sales += c[4];
+        m.profit += c[5];
+        byMonth.set(key, m);
+      }
+      const green = accent();
+      el('months').replaceChildren(
+        Plot.plot(
+          plotBase(el('months'), {
+            marginLeft: 48,
+            x: { label: null },
+            y: { label: null, grid: true, tickFormat: (d) => money(d) },
+            color: { domain: ['Sales', 'Profit'], range: ['currentColor', green], legend: true },
+            marks: [
+              Plot.lineY(
+                [...byMonth].sort().flatMap(([k, m]) => [
+                  { date: new Date(k), v: m.sales, measure: 'Sales' },
+                  { date: new Date(k), v: m.profit, measure: 'Profit' },
+                ]),
+                { x: 'date', y: 'v', stroke: 'measure', strokeWidth: 1.75 },
+              ),
+              Plot.ruleY([0]),
+            ],
+          }),
+        ),
+      );
+
+      const bySub = data.subcats.map((name, s) => ({
+        name,
+        profit: cells.filter((c) => c[3] === s).reduce((t, c) => t + c[5], 0),
+      }));
+      el('subcats').replaceChildren(
+        Plot.plot(
+          plotBase(el('subcats'), {
+            height: 380,
+            marginLeft: 84,
+            x: { label: null, grid: true, tickFormat: (d) => money(d) },
+            y: { label: null },
+            marks: [
+              Plot.barX(bySub, {
+                y: 'name',
+                x: 'profit',
+                fill: (d) => (d.profit < 0 ? 'currentColor' : green),
+                sort: { y: '-x' },
+              }),
+              Plot.ruleX([0]),
+            ],
+          }),
+        ),
+      );
+    }
+
+    year.addEventListener('change', draw);
+    region.addEventListener('change', draw);
+    redrawOn(root, draw);
+    draw();
+  });
+</script>

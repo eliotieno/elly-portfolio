@@ -1,0 +1,89 @@
+---
+import Base from './Base.astro';
+import { work } from '../data/work.js';
+
+const { slug, facts = [] } = Astro.props;
+const i = work.findIndex((w) => w.slug === slug);
+const item = work[i];
+const next = work[(i + 1) % work.length];
+---
+
+<Base title={`${item.title} - Elly Otieno`} description={item.text}>
+  <article class="wrap">
+    <header class="head">
+      <p class="label"><a href="/work/">Work</a> / Case study {String(i + 1).padStart(2, '0')}</p>
+      <h1>{item.title}</h1>
+      <p class="lede">{item.text}</p>
+      <dl>
+        {
+          facts.map(([k, v]) => (
+            <div>
+              <dt class="label">{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </header>
+
+    <slot />
+
+    <nav class="next" aria-label="Next case study">
+      <span class="label">Next</span>
+      <a href={`/work/${next.slug}/`}>{next.title}</a>
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .head {
+    padding-block: clamp(2.5rem, 7vw, 6rem) clamp(2rem, 5vw, 4rem);
+  }
+
+  h1 {
+    margin-top: 1rem;
+    font-size: clamp(2.35rem, 6.6vw, 6.25rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    max-width: 16ch;
+    text-wrap: balance;
+  }
+
+  .lede {
+    margin-top: clamp(1.5rem, 3vw, 2.5rem);
+    font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    max-width: 36ch;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 1.25rem 2rem;
+    margin: clamp(2rem, 5vw, 4rem) 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+  }
+
+  dd {
+    margin: 0.35rem 0 0;
+  }
+
+  .next {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: clamp(2.5rem, 6vw, 5rem);
+    padding-block: clamp(2rem, 5vw, 4rem) var(--section);
+    border-top: 1px solid var(--line);
+  }
+
+  .next a {
+    font-size: clamp(1.6rem, 3.8vw, 3.25rem);
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    text-decoration: none;
+  }
+</style>

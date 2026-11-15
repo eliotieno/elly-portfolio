@@ -1,0 +1,141 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+
+const stages = [
+  ['Collection', 'A field officer walks the boundary in TaroWorks. The form rejects invalid shapes and missing fields on the spot.'],
+  ['Conversion', 'The TaroWorks export is converted to GeoJSON, Shapefile and KML for office use.'],
+  ['Office review', 'GIS checks size, shape, overlaps and position against reference layers, and works through a fixed order of fixes.'],
+  ['Retake', 'If the boundary has to change, the officer picks one reason from a fixed list. The old polygon is kept.'],
+  ['Approval and overwrite', 'Field staff confirm the polygon matches the ground. Only then does it replace the old one, which stays in the history.'],
+];
+const retake = [
+  'Officer selects a retake reason during a farm visit',
+  'New boundary captured; previous polygon retained',
+  'System compares old and new area and tests the change against the reason',
+  'MEL reviews any flag on site',
+  'GIS validates the geometry',
+  'Field staff approve, or send it back for another retake',
+  'Approved polygon becomes the record; the prior version stays in the history',
+];
+---
+
+<CaseStudy
+  slug="polygon-lifecycle"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya'],
+    ['Tools', 'TaroWorks, Salesforce, ArcGIS Pro, KML for field review'],
+    ['Standards', 'Verra VM0042 and VM0047'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        A farm polygon is the unit of carbon accounting. If a boundary changes with no record of why, the area changes,
+        the additionality check changes and the audit trail breaks.
+      </p>
+      <p>
+        Polygons were collected, converted, reviewed and retaken by different people, and there was no single written
+        standard that covered the whole chain.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I wrote a master SOP that follows a polygon through five stages, with roles, known issues and a register of
+        open questions. One rule governs it: nothing is overwritten before approval, and every change carries exactly
+        one stated reason.
+      </p>
+      <ol class="stages">
+        {
+          stages.map(([name, text]) => (
+            <li>
+              <strong>{name}</strong>
+              <span>{text}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <p>
+        Office review follows a quality standard aligned with VM0047: size thresholds, shape and topology checks,
+        exclusion of forest reserves, water bodies, protected areas and roads, position against field reference points,
+        and exclusion of polygons with more than 10 percent existing tree cover.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">The retake loop</h2>
+    <div class="prose">
+      <ol class="steps">
+        {retake.map((step) => <li>{step}</li>)}
+      </ol>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        Review identified 829 polygons that needed retaking, for three reasons: placement errors, too much existing
+        tree cover, and relocation. Programme managers and field officers reviewed the cleaned polygons and confirmed
+        each against the ground before anything was overwritten. Field teams received updated KML files at each stage.
+      </p>
+      <p>
+        All 35 project units went from no GIS to meeting the GIS requirements of VM0042 and VM0047, with documentation
+        that was audit-ready under VM0042.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Next steps</h2>
+    <div class="prose">
+      <p>
+        The SOP was written for Kenya as a model that can extend to Uganda and Tanzania. The route for sending a
+        rejected polygon back to the field still needs a proper interface.
+      </p>
+    </div>
+  </section>
+</CaseStudy>
+
+<style>
+  .stages,
+  .steps {
+    display: grid;
+    counter-reset: n;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stages li,
+  .steps li {
+    counter-increment: n;
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.25rem 0;
+    padding-block: 0.9rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .stages li::before,
+  .steps li::before {
+    content: counter(n, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--accent);
+    padding-top: 0.3em;
+  }
+
+  .stages li::before {
+    grid-row: span 2;
+  }
+
+  .stages span {
+    grid-column: 2;
+    font-size: 1rem;
+    color: var(--muted);
+  }
+</style>

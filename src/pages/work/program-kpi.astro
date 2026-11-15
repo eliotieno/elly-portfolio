@@ -1,0 +1,111 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import KpiDashboard from '../../components/KpiDashboard.astro';
+
+const pages = [
+  'Executive overview',
+  'NEST and ROOT visits',
+  'Nursery and outplanting',
+  'Contracts',
+  'Inactive farmers',
+  'Staff performance',
+  'Impact',
+  'Data quality',
+];
+---
+
+<CaseStudy
+  slug="program-kpi"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya'],
+    ['Tools', 'Power BI Desktop, Power Query, DAX'],
+    ['Source', 'Salesforce objects fed by TaroWorks field forms'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        Kenya field reporting ran on two Excel workbooks. One held a row per farmer and was refreshed by hand. The
+        other took pasted form submissions and was recalculated each time.
+      </p>
+      <p>The aim was one model that refreshes itself and can later take in Uganda and Tanzania.</p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        Six Salesforce queries came in through Power Query: contracts, farms, local groups, two nursery forms and
+        outplanting. I reshaped them into 13 tables. Six are lookup tables (project unit, local group, farmer, staff,
+        date, collector). Five hold events (NEST, NEST seedlings, ROOT, contract signing, visits). Two hold assumptions
+        and the measures. They are joined by 16 relationships and reported through 107 measures.
+      </p>
+      <p>Most of the work was deciding what to count. Four decisions changed the totals:</p>
+      <ul class="list">
+        <li>
+          A physical visit is counted once per farmer per day. Two forms filled in on the same visit no longer make two
+          visits.
+        </li>
+        <li>
+          Tree totals and outplanting completion use each farmer's latest ROOT record. Adding up every past snapshot
+          would count the same trees repeatedly.
+        </li>
+        <li>A farmer's group membership is read from the record in force on the day of the visit.</li>
+        <li>Recency is shown next to the date the data was last refreshed, so a stale refresh is visible.</li>
+      </ul>
+      <p>The report has eight pages: {pages.join(', ').toLowerCase()}.</p>
+      <p>Built with Claude Code as a coding assistant.</p>
+    </div>
+  </section>
+
+  <KpiDashboard />
+
+  <section class="split">
+    <h2 class="label">Reading the demo</h2>
+    <div class="prose">
+      <p>
+        This is a web rebuild of the main views from the overview and visits pages, on generated data. Pick a project
+        unit to filter everything. The unit chart ranks units by the share of their farmers who have been visited.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        Every KPI in the programme's KPI document is implemented as a measure, and the totals were reconciled against
+        the live data. The report package passed Power BI's report-format validator with no errors or warnings.
+      </p>
+      <p>
+        The data quality page surfaced problems the workbooks had hidden: records dated in the future, farmers carrying
+        more than one "most recent" nursery row, and contract events with no matching farmer.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Next steps</h2>
+    <div class="prose">
+      <p>
+        The plan is to extend the model from Kenya to Uganda and Tanzania. Farm boundaries sit in a separate Salesforce
+        object from the farm record and still need joining in.
+      </p>
+    </div>
+  </section>
+</CaseStudy>
+
+<style>
+  .list {
+    display: grid;
+    gap: 0.75rem;
+    padding-left: 1.1em;
+    list-style: square;
+  }
+
+  .list ::marker {
+    color: var(--accent);
+  }
+</style>

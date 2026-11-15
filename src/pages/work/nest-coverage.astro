@@ -1,0 +1,122 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+
+const countries = [
+  { name: 'Kenya', records: 1320, farmers: 18232 },
+  { name: 'Uganda', records: 2377, farmers: 4929 },
+].map((c) => ({ ...c, share: (c.records / c.farmers) * 100 }));
+---
+
+<CaseStudy
+  slug="nest-coverage"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya and Uganda'],
+    ['Method', 'Unique monitoring records against registered farmers, over matched collection windows'],
+    ['Audience', 'Programme leadership'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        NEST is one of the programme's field monitoring forms. Kenya and Uganda were returning very different numbers
+        of records, and leadership read the gap as a matter of geography and timing.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I counted unique records per farmer in each country, set them against the number of registered farmers, and
+        compared collection windows of similar length. I also cross-referenced the records with the spatial extent of
+        the farms.
+      </p>
+    </div>
+  </section>
+
+  <section class="demo" aria-labelledby="bars-h">
+    <div class="demo-head">
+      <h2 class="label" id="bars-h">NEST coverage of registered farmers</h2>
+    </div>
+    <div class="demo-body bars">
+      {
+        countries.map((c) => (
+          <div class="row">
+            <span>{c.name}</span>
+            <div class="track">
+              <div class="bar" style={`width:${c.share.toFixed(1)}%`} />
+            </div>
+            <b>{c.share.toFixed(1)}%</b>
+            <span class="label">
+              {c.records.toLocaleString('en')} of {c.farmers.toLocaleString('en')} farmers
+            </span>
+          </div>
+        ))
+      }
+    </div>
+    <p class="demo-foot label">Reported programme figures, not generated data.</p>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        Kenya had 1,320 unique records from 18,232 registered farmers, which is 7.2%. Uganda had 2,377 from 4,929,
+        which is 48.2%. The windows were similar, so elapsed time could not account for a gap that size.
+      </p>
+      <p>
+        I put the case to leadership that the difference came from how teams collected and reported. That pointed the
+        corrective action at work planning and reporting discipline.
+      </p>
+      <p>
+        I also rebuilt the NEST reporting workbook so one file adapts to each country, handles repeat visits and
+        carries notes on field problems.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Next steps</h2>
+    <div class="prose">
+      <p>
+        Break coverage down by project unit and by field officer, to see where the missing records are concentrated.
+      </p>
+    </div>
+  </section>
+</CaseStudy>
+
+<style>
+  .bars {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr) 4.5rem;
+    align-items: center;
+    gap: 0.25rem 1rem;
+  }
+
+  .track {
+    border-left: 1px solid var(--muted);
+  }
+
+  .bar {
+    height: 2.25rem;
+    background: var(--accent);
+  }
+
+  .row b {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    text-align: right;
+  }
+
+  .row .label {
+    grid-column: 2 / -1;
+  }
+</style>

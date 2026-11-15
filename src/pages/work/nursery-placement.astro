@@ -1,0 +1,84 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import NurseryMap from '../../components/NurseryMap.astro';
+---
+
+<CaseStudy
+  slug="nursery-placement"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya'],
+    ['Tools', 'Python, GeoPandas, SRTM 30 m elevation'],
+    ['Outputs', 'GeoJSON layers, farm-to-nursery CSV, interactive map, decision report'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        Farmers collect their seedlings from a nursery on foot. The programme had to decide how many nurseries to run
+        and where to put them.
+      </p>
+      <p>
+        The usual shortcut is a ring drawn around each site. That ignores hills, and in this terrain a kilometre uphill
+        and a kilometre on the flat are different walks.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I treated every mapped farm as both demand and a possible host. Farm polygons became centroids. For each pair
+        of farms I worked out a walking time from the straight-line distance and the elevation difference between them,
+        using SRTM 30 m elevation and Tobler's hiking function.
+      </p>
+      <p>
+        A greedy set cover then picked the smallest group of host farms that reaches every farm inside the time limit.
+        A pruning pass removed any site the others already covered.
+      </p>
+      <p>
+        I ran it for networks of 264, 291, 352, 1,000 and 2,000 sites, so the programme could see what each step up in
+        convenience would cost.
+      </p>
+    </div>
+  </section>
+
+  <NurseryMap />
+
+  <section class="split">
+    <h2 class="label">Reading the map</h2>
+    <div class="prose">
+      <p>
+        The map runs the same method on generated farms. Switch the time limit and watch the site count. Each tighter
+        limit needs many more nurseries, and each one serves fewer farmers.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        On the real programme the lean network was 264 sites. It reached all 18,055 mapped farms within a 30-minute
+        walk. The average farm-to-nursery distance was 1,317.3 m, and 61.49% of farms had a second nursery in range.
+      </p>
+      <p>
+        The programme received GeoJSON layers, an interactive map, a CSV assigning every farm to a nursery, and a
+        written report comparing the scenarios.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Limits and next steps</h2>
+    <div class="prose">
+      <p>
+        Paths are straight lines, so real walks are longer. Start points are farm centroids, not homesteads. Water,
+        land tenure and whether a farmer is willing to host are not in the model. The site list is a planning anchor
+        that still has to be checked on the ground.
+      </p>
+      <p>Next I would add recorded footpath traces and least-cost paths around rivers.</p>
+    </div>
+  </section>
+</CaseStudy>

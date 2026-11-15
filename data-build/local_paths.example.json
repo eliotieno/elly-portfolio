@@ -1,0 +1,5 @@
+{
+  "superstore_workbook": "C:/path/to/Superstore sample workbook.xls",
+  "qa_fault_suite": "C:/path/to/Polygon_QA_Pipeline/test_data/qa_output/qa_flagged.geojson",
+  "real_farm_csv": "C:/path/to/real farm centroids.csv (lon, lat, selected_f, selected_1, selected_l columns)"
+}

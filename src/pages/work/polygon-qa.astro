@@ -1,0 +1,87 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import QaMap from '../../components/QaMap.astro';
+---
+
+<CaseStudy
+  slug="polygon-qa"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya and Uganda'],
+    ['Tools', 'Python, GeoPandas, Shapely, pywebview, PyInstaller'],
+    ['Reference data', 'OpenStreetMap, geoBoundaries, Google Open Buildings'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        Every farm polygon feeds the carbon accounts, so each one is checked before a verifier sees it. The checking
+        was manual. Reviewers opened polygons one at a time and logged what they found in a spreadsheet.
+      </p>
+      <p>
+        Leadership asked whether the cleaning could be automated while a person still looked at every farm.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I designed a pipeline in three tiers. A rule engine runs first: geometry validity, size limits, overlaps with
+        neighbours, duplicates, distance from the GPS points taken on the farm, and overlays against water, forest,
+        roads and buildings. Remote-sensing checks come second. An AI visual pre-review comes third and is advisory
+        only.
+      </p>
+      <p>
+        Each polygon lands in one of three queues. Queue A passed, and the office spot-checks a sample. Queue B needs a
+        person to look and decide. Queue C is a confirmed problem that goes back for correction. A person still decides
+        on every polygon, and every decision is logged.
+      </p>
+      <p>
+        The rule engine is wrapped in a Windows desktop app so staff who do not use Python can run it. The app walks
+        through three steps, downloads its own reference layers for the chosen area, and writes an Excel flag report, a
+        flagged GeoJSON file and a run log.
+      </p>
+      <p>
+        I used Claude as a build accelerator for the code. The concept, the QA criteria, the thresholds and the
+        validation approach were mine.
+      </p>
+    </div>
+  </section>
+
+  <QaMap />
+
+  <section class="split">
+    <h2 class="label">Reading the map</h2>
+    <div class="prose">
+      <p>
+        These are the polygons the engine is tested against. Each was generated to trip one check: a sliver, a spike,
+        an overlapping pair, a duplicate under a different ID, a plot that crosses a river. Eight are clean. The table
+        shows what was planted and what the engine flagged.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        The engine sorted its fault suite correctly on the day it was built, then processed several thousand real
+        polygons in minutes. The output was a queue-based Excel report that the review team could work through in
+        order, with a view per project unit showing where the problems were concentrated.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Next steps</h2>
+    <div class="prose">
+      <p>
+        The thresholds need calibrating against polygons that people have already reviewed by hand. The report has
+        columns for a reviewer to confirm or correct each queue, so the engine's accuracy can be measured as the team
+        uses it.
+      </p>
+    </div>
+  </section>
+</CaseStudy>

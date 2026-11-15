@@ -1,0 +1,20 @@
+{
+  "name": "elly-portfolio",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "data": "py data-build/make_data.py && py data-build/make_from_sources.py",
+    "check": "astro build && node checks/copy_check.mjs && py checks/leak_check.py"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@observablehq/plot": "^0.6.19",
+    "astro": "^7.4.12",
+    "maplibre-gl": "^6.18.0"
+  }
+}

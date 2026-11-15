@@ -1,0 +1,126 @@
+---
+import Base from '../layouts/Base.astro';
+
+const instances = [
+  ['Fish cage siting', 'Lake Victoria, during my degree', 'Where do the cages go so they stop failing'],
+  ['Mosquito distribution', 'Kisumu East, 2019', 'Where should vector control start'],
+  ['Site suitability for expansion', 'Kisumu, Homa Bay and Migori', 'Where does the programme go next'],
+  ['Nursery placement', '18,055 farms in Kenya', 'Where do the nurseries go so everyone can walk to one'],
+];
+const record = [
+  ['2023 to 2026', 'GIS and Data Analyst, Trees for the Future'],
+  ['2020 to 2023', 'GIS Analyst, Oakar Services, Nairobi'],
+  ['Degree', 'BTech Geoinformation Technology, Technical University of Kenya'],
+  ['Membership', 'Graduate Member, Institution of Surveyors of Kenya'],
+  ['Licence', 'Remote Pilot Licence, Kenya Civil Aviation Authority'],
+];
+---
+
+<Base title="About - Elly Otieno" description="How a run of failed fish cages on Lake Victoria led to a career in GIS and data.">
+  <div class="wrap">
+    <header class="head">
+      <h1>It started with fish cages that kept failing.</h1>
+    </header>
+
+    <section class="split">
+      <h2 class="label">How I got here</h2>
+      <div class="prose">
+        <p>
+          I grew up beside Lake Victoria. For years people around me put fish cages in the water, and the cages kept
+          failing. Everybody had a theory. Nobody had an answer, because a proper study costs money nobody there had.
+        </p>
+        <p>
+          It struck me that the answer was probably already lying around. The lake is well studied, so its depths are
+          mapped and public. Wind data is public. Sentinel imagery is free. Nobody had put them together for this
+          question. That is why I enrolled in Geoinformation Technology.
+        </p>
+        <p>
+          During the degree I ran the analysis: depth, water movement, wind exposure. A few cages went in at the sites
+          I picked and they did well. The project stopped when the owner had a family emergency and had to step away.
+        </p>
+      </div>
+    </section>
+
+    <section class="split">
+      <h2 class="label">The same question since</h2>
+      <div class="prose">
+        <p>
+          My work has been that problem at different sizes: find the data that already exists, work out where the thing
+          should go, then check the answer on the ground.
+        </p>
+        <div class="scroll">
+          <table class="data">
+            <tbody>
+              {
+                instances.map(([what, where, question]) => (
+                  <tr>
+                    <td>{what}</td>
+                    <td class="text">{where}</td>
+                    <td class="text">{question}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="split">
+      <h2 class="label">Record</h2>
+      <div class="prose">
+        <dl>
+          {
+            record.map(([k, v]) => (
+              <div>
+                <dt class="label">{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))
+          }
+        </dl>
+        <p>
+          <a href="/work/">See the work</a> or write to <a href="mailto:eliotieno.ol@gmail.com">eliotieno.ol@gmail.com</a>.
+        </p>
+      </div>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .head {
+    padding-block: clamp(2.5rem, 7vw, 6rem) clamp(1rem, 3vw, 2rem);
+  }
+
+  h1 {
+    font-size: clamp(2.35rem, 6.6vw, 6.25rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  dl {
+    margin: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  dl div {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: baseline;
+    padding-block: 0.75rem;
+    border-top: 1px solid var(--line);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  table.data td {
+    white-space: normal;
+    text-align: left;
+  }
+</style>
