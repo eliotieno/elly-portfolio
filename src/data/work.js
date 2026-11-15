@@ -43,7 +43,7 @@ export const more = [
   {
     title: 'VM0047 deforestation compliance pipeline',
     where: 'Trees for the Future',
-    text: 'A Python and Google Earth Engine pipeline that runs a ten-year retrospective deforestation check on project polygons and writes the VM0047 compliance report. It is in production use for the Uganda and Kenya projects. Built with Claude Code as a coding assistant.',
+    text: 'A Python and Google Earth Engine pipeline that runs a ten-year retrospective deforestation check on project polygons and writes the VM0047 compliance report. It is in production use for the Uganda and Kenya projects.',
   },
   {
     title: 'TaroWorks to GIS converter',
