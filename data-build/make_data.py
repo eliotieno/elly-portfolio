@@ -12,6 +12,7 @@ Tobler hiking time over elevation difference, greedy minimum set cover, redundan
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -108,39 +109,102 @@ def nursery(unit, lon, lat):
     }
 
 
+# Program KPI demo. Dates are fixed so the page never goes stale.
+AS_OF = date(2026, 9, 30)
+SEASON_START = date(2026, 3, 2)  # a Monday
+SIGN_START = date(2026, 8, 11)
+REGIONS = ["North", "Central", "South"]
+STATUSES = ["Active", "Reinstated", "Presumed inactive", "Confirmed inactive", "Deceased", "Unclassified"]
+CHALLENGES = ["No rain", "Seedlings not ready", "Labour shortage", "Pests or disease", "Livestock damage", "Land not prepared"]
+BUCKETS = ["Under 2 weeks", "2 to 4 weeks", "1 to 2 months", "2 to 3 months", "3 to 6 months", "6 months or more"]
+BUCKET_DAYS = [14, 28, 60, 90, 180]
+
+
 def kpi(unit):
-    """Monthly NEST and ROOT records per unit, plus visit and recency counts. All additive across units."""
-    months = [f"{y}-{m:02d}" for y in (2025, 2026) for m in range(1, 13)][:22]  # Jan 2025 to Oct 2026
-    season = 1 + 0.45 * np.sin((np.arange(22) % 12 - 2) / 12 * 2 * np.pi)
+    """Per-unit counts behind four report pages. Every figure is additive, so the page can sum any set of units."""
+    n_weeks = (AS_OF - SEASON_START).days // 7 + 1
+    n_days = (AS_OF - SIGN_START).days + 1
+    week = np.arange(n_weeks)
+    workday = np.array([(SIGN_START + timedelta(int(d))).weekday() < 4 for d in range(n_days)])  # Monday to Thursday
     units = []
-    for u, (town, *_ ) in enumerate(TOWNS):
+    for u in range(len(TOWNS)):
         n = int((unit == u).sum())
-        effort = rng.uniform(0.08, 0.5)  # some units simply record more
-        root_rate = effort * 0.21 * season / season.mean()
-        root = rng.poisson(root_rate[None, :].repeat(n, 0))  # farmer x month
-        nest = rng.poisson((root_rate * 0.3)[None, :].repeat(n, 0))
-        same_day = rng.binomial(np.minimum(root, nest), 0.6)  # both forms on one visit
-        visits = root + nest - same_day
-        any_visit = visits > 0
-        visited = any_visit.any(axis=1)
-        last = np.where(visited, 21 - np.argmax(any_visit[:, ::-1], axis=1), -1)  # months before Oct 2026
-        age = 21 - last
+        effort = rng.uniform(0.25, 1.0)  # some units simply visit and record more
+        status = rng.choice(6, n, p=[0.79, 0.04, 0.09, 0.05, 0.02, 0.01])
+        base = status < 2  # Active or Reinstated: the population every other page counts against
+        nb = int(base.sum())
+
+        # Visits. NEST (nursery) visits come early in the season, ROOT (outplanting) visits later.
+        p_nest = effort * 0.035 * np.exp(-week / 9)
+        p_root = effort * 0.05 / (1 + np.exp(-(week - 10) / 3))
+        nest = rng.random((nb, n_weeks)) < p_nest
+        root = rng.random((nb, n_weeks)) < p_root
+        any_visit = nest | root  # one visit day per farmer per week, however many forms were filled in
+        days = any_visit.sum(axis=1)
+        visited = days > 0
+        weeks_back = np.argmax(any_visit[:, ::-1], axis=1)  # 0 means visited in the latest week
+        since = np.where(visited, weeks_back * 7 + rng.integers(0, 7, nb), 9999)  # days since the last visit
+        had_nest, had_root = nest.any(axis=1), root.any(axis=1)
+
+        # Outplanting, read from each farmer's latest ROOT record.
+        last_root = np.where(had_root, n_weeks - 1 - np.argmax(root[:, ::-1], axis=1), -1)
+        finished = had_root & (rng.random(nb) < (last_root / n_weeks) ** 2)
+        started = had_root & ~finished & (rng.random(nb) < 0.8)
+        complete = np.where(finished, 100, np.where(started, rng.uniform(10, 90, nb), 0))
+        trees = np.where(finished, rng.integers(600, 2500, nb), np.where(started, rng.integers(50, 800, nb), 0))
+        root_visits = int(root.sum())
+        flagged = rng.random((root_visits, len(CHALLENGES))) < np.array([0.16, 0.12, 0.09, 0.07, 0.05, 0.04])
+
+        # Contracts. Signing happens at a handful of events per unit, on working days.
+        events = np.sort(rng.choice(np.flatnonzero(workday), rng.integers(5, 10), replace=False))
+        signs = rng.random(nb) < rng.uniform(0.35, 0.92)
+        sign_day = rng.choice(events, nb, p=rng.dirichlet(np.ones(len(events)) * 2))
+        signed_daily = np.bincount(sign_day[signs], minlength=n_days)
+        n_signed = int(signs.sum())
+        exceptions = rng.binomial(n_signed, [0.015, 0.02, 0.03, 0.025, 0.06, 0.01])
+
+        # Presumed inactive review. Open cases sit in stages 1 to 3; reinstated and confirmed cases are resolved.
+        n_pi = int((status == 2).sum())
+        open_stage = rng.choice(3, n_pi, p=[0.5, 0.2, 0.3])
+        waiting = rng.exponential(55, n_pi)
+        took = rng.exponential(40, int(((status == 1) | (status == 3)).sum()))
+        bucket = lambda d: np.bincount(np.searchsorted(BUCKET_DAYS, d, side="right"), minlength=6).tolist()
+
         units.append({
             "name": f"Unit {u + 1:02d}",
-            "farmers": n,
-            "visited": int(visited.sum()),
-            "nest": nest.sum(axis=0).tolist(),
-            "root": root.sum(axis=0).tolist(),
-            "visits": visits.sum(axis=0).tolist(),
-            "recency": [
-                int((visited & (age <= 1)).sum()),
-                int((visited & (age > 1) & (age <= 3)).sum()),
-                int((visited & (age > 3) & (age <= 6)).sum()),
-                int((visited & (age > 6)).sum()),
-                int((~visited).sum()),
-            ],
+            "region": REGIONS[u // 4],
+            "base": nb,
+            "status": np.bincount(status, minlength=6).tolist(),
+            "seen": [int((since < d).sum()) for d in (7, 28, 90)],
+            "mix": [int((had_nest & ~had_root).sum()), int((had_root & ~had_nest).sum()), int((had_nest & had_root).sum()), int((~visited).sum())],
+            "visitDays": int(days.sum()),
+            "freq": [int((days == 1).sum()), int((days == 2).sum()), int((days >= 3).sum())],
+            "nestW": nest.sum(axis=0).tolist(),
+            "rootW": root.sum(axis=0).tolist(),
+            "stage": [int((had_root & ~started & ~finished).sum()), int(started.sum()), int(finished.sum()), int((~had_root).sum())],
+            "trees": int(trees.sum()),
+            "completeSum": int(round(float(complete[had_root].sum()))),
+            "rootVisits": root_visits,
+            "challenge": flagged.sum(axis=0).tolist(),
+            "signedD": signed_daily.tolist(),
+            "exceptions": exceptions.tolist(),
+            "pipe": [*np.bincount(open_stage, minlength=3).tolist(), int((status == 1).sum()), int((status == 3).sum())],
+            "spell": [bucket(waiting), bucket(took)],
         })
-    return {"months": months, "recencyLabels": ["Under 30 days", "31 to 90", "91 to 180", "Over 180", "Never"], "units": units}
+        b = units[-1]
+        assert sum(b["mix"]) == nb and sum(b["stage"]) == nb and sum(b["signedD"]) == n_signed <= nb
+        assert sum(b["freq"]) == nb - b["mix"][3] and sum(b["pipe"][:3]) == b["status"][2]
+        assert b["seen"][0] <= b["seen"][1] <= b["seen"][2] <= nb - b["mix"][3]
+    return {
+        "asOf": AS_OF.isoformat(),
+        "seasonStart": SEASON_START.isoformat(),
+        "signStart": SIGN_START.isoformat(),
+        "regions": REGIONS,
+        "statuses": STATUSES,
+        "challenges": CHALLENGES,
+        "buckets": BUCKETS,
+        "units": units,
+    }
 
 
 if __name__ == "__main__":

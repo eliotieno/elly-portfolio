@@ -3,14 +3,17 @@ import CaseStudy from '../../layouts/CaseStudy.astro';
 import KpiDashboard from '../../components/KpiDashboard.astro';
 
 const pages = [
-  'Executive overview',
-  'NEST and ROOT visits',
-  'Nursery and outplanting',
+  'Home',
+  'Farmer support and visits',
+  'Site visits',
+  'Site visit follow-up',
+  'Outplanting operations',
+  'EOS and LOG',
   'Contracts',
-  'Inactive farmers',
-  'Staff performance',
-  'Impact',
-  'Data quality',
+  'Farmer status',
+  'Project and team oversight',
+  'Polygon overview',
+  'Farmer detail',
 ];
 ---
 
@@ -19,7 +22,7 @@ const pages = [
   facts={[
     ['Where', 'Trees for the Future, Kenya'],
     ['Tools', 'Power BI Desktop, Power Query, DAX'],
-    ['Source', 'Salesforce objects fed by TaroWorks field forms'],
+    ['Source', 'Salesforce, read directly, plus one SharePoint sheet'],
   ]}
 >
   <section class="split">
@@ -37,10 +40,10 @@ const pages = [
     <h2 class="label">What I did</h2>
     <div class="prose">
       <p>
-        Six Salesforce queries came in through Power Query: contracts, farms, local groups, two nursery forms and
-        outplanting. I reshaped them into 13 tables. Six are lookup tables (project unit, local group, farmer, staff,
-        date, collector). Five hold events (NEST, NEST seedlings, ROOT, contract signing, visits). Two hold assumptions
-        and the measures. They are joined by 16 relationships and reported through 107 measures.
+        The model reads Salesforce directly through Power Query: farmers, project units, contracts, farmer status
+        history, site visits, farm polygons and the two field forms, NEST for nurseries and ROOT for outplanting. One
+        signing attendance sheet comes from SharePoint. Nothing is pasted in by hand. The model has 32 tables, 24
+        relationships and 345 measures.
       </p>
       <p>Most of the work was deciding what to count. Four decisions changed the totals:</p>
       <ul class="list">
@@ -52,10 +55,24 @@ const pages = [
           Tree totals and outplanting completion use each farmer's latest ROOT record. Adding up every past snapshot
           would count the same trees repeatedly.
         </li>
-        <li>A farmer's group membership is read from the record in force on the day of the visit.</li>
-        <li>Recency is shown next to the date the data was last refreshed, so a stale refresh is visible.</li>
+        <li>
+          Contract signing is measured against active and reinstated farmers only, so farmers who have left the
+          programme do not pull the percentage down.
+        </li>
+        <li>
+          Planting challenges arrive from Salesforce as one multi-select text field. The model splits it, so each
+          reason is counted against the visits that reported it.
+        </li>
       </ul>
-      <p>The report has eight pages: {pages.join(', ').toLowerCase()}.</p>
+      <p>
+        The Kenya report has {pages.length} pages: {pages.join(', ').toLowerCase().replace('eos and log', 'EOS and LOG')}. Every page
+        prints when Salesforce was last pulled and the time of the newest record, so a stale refresh is visible. A
+        Uganda report runs on the same model, and a script copies new shared pages across to it.
+      </p>
+      <p>
+        Before a change is opened in Power BI, a check script reads the project files and confirms that every field a
+        visual uses exists in the model.
+      </p>
     </div>
   </section>
 
@@ -65,8 +82,9 @@ const pages = [
     <h2 class="label">Reading the demo</h2>
     <div class="prose">
       <p>
-        This is a web rebuild of the main views from the overview and visits pages, on generated data. Pick a project
-        unit to filter everything. The unit chart ranks units by the share of their farmers who have been visited.
+        This is a web rebuild of four of those pages on generated data: farmer support and visits, outplanting
+        operations, contracts and farmer status. The region and project unit filters work across all four, as the
+        slicers do in the report. Pages that list individual farmers or staff are left out.
       </p>
     </div>
   </section>
@@ -79,8 +97,9 @@ const pages = [
         the live data. The report package passed Power BI's report-format validator with no errors or warnings.
       </p>
       <p>
-        The data quality page surfaced problems the workbooks had hidden: records dated in the future, farmers carrying
-        more than one "most recent" nursery row, and contract events with no matching farmer.
+        The pages carry their own data quality counts: site visits with no date or a date in the future, farms without
+        exactly one current polygon, and EOS and LOG records with issues. Each count comes with the list of records
+        behind it, so field staff can fix them at the source.
       </p>
     </div>
   </section>
@@ -89,8 +108,8 @@ const pages = [
     <h2 class="label">Next steps</h2>
     <div class="prose">
       <p>
-        The plan is to extend the model from Kenya to Uganda and Tanzania. Farm boundaries sit in a separate Salesforce
-        object from the farm record and still need joining in.
+        Tanzania is next. The script that copies shared pages to the Uganda report already takes a country option, so
+        Tanzania needs only its own report file.
       </p>
     </div>
   </section>

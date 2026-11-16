@@ -1,136 +1,267 @@
 ---
 import data from '../../public/data/kpi.json';
+
+const pages = [
+  ['visits', 'Farmer support and visits'],
+  ['outplanting', 'Outplanting operations'],
+  ['contracts', 'Contracts'],
+  ['status', 'Farmer status'],
+];
+const asOf = new Date(data.asOf).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 ---
 
 <section class="demo" data-kpi aria-labelledby="kpi-h">
   <div class="demo-head">
-    <h2 class="label" id="kpi-h">Overview and visits pages, rebuilt on generated data</h2>
+    <h2 class="label" id="kpi-h">Four report pages, rebuilt on generated data</h2>
+    <fieldset class="controls">
+      <legend class="label">Page</legend>
+      {
+        pages.map(([key, name], i) => (
+          <label>
+            <input type="radio" name="kpi-page" value={key} checked={i === 0} /> {name}
+          </label>
+        ))
+      }
+    </fieldset>
     <div class="controls">
+      <label>
+        Region
+        <select data-region>
+          <option value="">All regions</option>
+          {data.regions.map((r) => <option>{r}</option>)}
+        </select>
+      </label>
       <label>
         Project unit
         <select data-unit>
-          <option value="all">All units</option>
-          {data.units.map((u, i) => <option value={i}>{u.name}</option>)}
+          <option value="">All units</option>
+          {data.units.map((u) => <option data-region={u.region}>{u.name}</option>)}
         </select>
       </label>
     </div>
   </div>
-  <div class="demo-body">
-    <div class="cards" data-cards aria-live="polite"></div>
-    <div class="charts">
-      <figure>
-        <figcaption class="label">Program records by month</figcaption>
-        <div data-chart="months"></div>
-      </figure>
-      <figure>
-        <figcaption class="label">Share of farmers visited, by unit</figcaption>
-        <div data-chart="units"></div>
-      </figure>
-      <figure>
-        <figcaption class="label">Farmers by time since last visit</figcaption>
-        <div data-chart="recency"></div>
-      </figure>
-    </div>
+  <div class="demo-body" aria-live="polite">
+    <div class="cards" data-cards></div>
+    <div class="charts" data-charts></div>
+    <div class="scroll" data-table></div>
     <noscript><p>The charts need JavaScript.</p></noscript>
   </div>
   <p class="demo-foot label">
-    Generated farmers, visits and units. A physical visit counts once even when two forms were filled in on the same
-    day. No real records.
+    Generated farmers, visits and contracts, as at {asOf}. No real records, names or places.
   </p>
 </section>
+
+<style>
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  legend {
+    float: left;
+    padding: 0;
+    margin-right: 1rem;
+  }
+
+  [data-table] {
+    margin-top: 2rem;
+  }
+</style>
 
 <script>
   import { accent, card, num, pct, plotBase, redrawOn, whenVisible } from '../lib/demo.js';
 
   const root = document.querySelector('[data-kpi]');
-  const el = (name) => root.querySelector(`[data-chart="${name}"]`);
+  const $ = (sel) => root.querySelector(sel);
   const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const DAY = 86400000;
 
   whenVisible(root, async () => {
     const [Plot, data] = await Promise.all([import('@observablehq/plot'), fetch('/data/kpi.json').then((r) => r.json())]);
-    const select = root.querySelector('[data-unit]');
-    const dates = data.months.map((m) => new Date(`${m}-01`));
+    const region = $('[data-region]');
+    const unit = $('[data-unit]');
+    const dates = (start, n, step) => Array.from({ length: n }, (_, i) => new Date(Date.parse(start) + i * step * DAY));
+    const weeks = dates(data.seasonStart, data.units[0].nestW.length, 7);
+    const days = dates(data.signStart, data.units[0].signedD.length, 1);
+    const share = (a, b) => (b ? pct(a / b) : 'n/a');
+
+    // Chart builders. Each returns a function that draws into a figure once it has a width.
+    const bars = (rows, { percent = false, left = 150 } = {}) => (el, green) =>
+      Plot.plot(
+        plotBase(el, {
+          height: 40 + rows.length * 26,
+          marginLeft: left,
+          x: { label: null, grid: true, percent, ...(percent ? { domain: [0, 100] } : {}) },
+          y: { label: null, domain: rows.map((r) => r[0]) },
+          marks: [Plot.barX(rows, { y: '0', x: '1', fill: (r) => (r[2] ? green : 'currentColor'), fillOpacity: 0.85 }), Plot.ruleX([0])],
+        }),
+      );
+    // Stacked bars or columns from rows of [category, series, value]. The first series is green, the second ink.
+    const stacked = (rows, series, { horizontal = false, interval, left = 70 } = {}) => (el, green) => {
+      const scale = { label: null, grid: true };
+      const cat = horizontal ? { label: null, domain: [...new Set(rows.map((r) => r[0]))] } : { label: null };
+      const mark = horizontal ? Plot.barX : interval ? Plot.rectY : Plot.barY;
+      const ch = { fill: '1', fillOpacity: 0.85, ...(horizontal ? { y: '0', x: '2' } : { x: '0', y: '2', interval }) };
+      return Plot.plot(
+        plotBase(el, {
+          height: horizontal ? 60 + cat.domain.length * 24 : 260,
+          marginLeft: horizontal ? left : 44,
+          x: horizontal ? scale : cat,
+          y: horizontal ? cat : scale,
+          color: { domain: series, range: [green, 'currentColor'], legend: series.length > 1 },
+          marks: [mark(rows, ch), horizontal ? Plot.ruleX([0]) : Plot.ruleY([0])],
+        }),
+      );
+    };
+    const line = (rows) => (el, green) =>
+      Plot.plot(
+        plotBase(el, {
+          marginLeft: 44,
+          x: { label: null },
+          y: { label: null, grid: true },
+          marks: [Plot.areaY(rows, { x: '0', y: '1', fill: green, fillOpacity: 0.12 }), Plot.lineY(rows, { x: '0', y: '1', stroke: green, strokeWidth: 1.75 }), Plot.ruleY([0])],
+        }),
+      );
+
+    // One function per report page. Each returns cards, charts and a table for the units picked.
+    const pages = {
+      visits(us) {
+        const base = sum(us.map((u) => u.base));
+        const mix = [0, 1, 2, 3].map((i) => sum(us.map((u) => u.mix[i])));
+        const seen = [0, 1, 2].map((i) => sum(us.map((u) => u.seen[i])));
+        return {
+          cards: [
+            ['Active and reinstated farmers', num.format(base)],
+            ['Visited this season', share(base - mix[3], base)],
+            ['Visited in last 7 days', num.format(seen[0])],
+            ['In last 28 days', num.format(seen[1])],
+            ['In last 90 days', num.format(seen[2])],
+            ['Not visited this season', num.format(mix[3])],
+          ],
+          charts: [
+            ['Share of farmers visited this season, by project unit', bars(data.units.map((u) => [u.name, 1 - u.mix[3] / u.base, us.length < data.units.length && us.includes(u)]), { percent: true, left: 60 })],
+            ['Farmers by forms recorded this season', bars([['NEST only', mix[0]], ['ROOT only', mix[1]], ['NEST and ROOT', mix[2]], ['Not visited', mix[3], true]], { left: 110 })],
+          ],
+          table: {
+            head: ['Project unit', 'Region', 'Farmers', 'NEST only', 'ROOT only', 'Both', 'Not visited', 'Visited', 'Visit days'],
+            rows: us.map((u) => [u.name, u.region, u.base, ...u.mix, share(u.base - u.mix[3], u.base), u.visitDays]),
+          },
+        };
+      },
+      outplanting(us) {
+        const tot = (k) => sum(us.map((u) => u[k]));
+        const vec = (k) => us[0][k].map((_, i) => sum(us.map((u) => u[k][i])));
+        const [nestW, rootW, stage, freq, challenge] = ['nestW', 'rootW', 'stage', 'freq', 'challenge'].map(vec);
+        const withRoot = tot('base') - stage[3];
+        return {
+          cards: [
+            ['Visit days this season', num.format(tot('visitDays'))],
+            ['Farmers visited once', num.format(freq[0])],
+            ['Visited twice', num.format(freq[1])],
+            ['Visited three times or more', num.format(freq[2])],
+            ['Trees outplanted', num.format(tot('trees'))],
+            ['Average outplanting complete', withRoot ? `${(tot('completeSum') / withRoot).toFixed(0)}%` : 'n/a'],
+          ],
+          charts: [
+            ['Weekly NEST and ROOT visits', stacked(weeks.flatMap((w, i) => [[w, 'NEST', nestW[i]], [w, 'ROOT', rootW[i]]]), ['NEST', 'ROOT'], { interval: 'week' })],
+            ['Farmers by planting stage, from each latest ROOT record', bars([['Not started', stage[0]], ['In progress', stage[1]], ['Finished', stage[2], true], ['No ROOT record', stage[3]]], { left: 110 })],
+            ['Planting challenges, share of ROOT visits', bars(data.challenges.map((c, i) => [c, challenge[i] / (tot('rootVisits') || 1)]), { percent: true })],
+          ],
+          table: {
+            head: ['Project unit', 'Region', 'Not started', 'In progress', 'Finished', 'No ROOT record', 'Trees outplanted'],
+            rows: us.map((u) => [u.name, u.region, ...u.stage, u.trees]),
+          },
+        };
+      },
+      contracts(us) {
+        const base = sum(us.map((u) => u.base));
+        const daily = days.map((_, i) => sum(us.map((u) => u.signedD[i])));
+        const signed = sum(daily);
+        const exc = us[0].exceptions.map((_, i) => sum(us.map((u) => u.exceptions[i])));
+        let running = 0;
+        const last = daily.length - 1;
+        return {
+          cards: [
+            ['Active and reinstated farmers', num.format(base)],
+            ['Signed a 2026 contract', num.format(signed)],
+            ['Not yet signed', num.format(base - signed)],
+            ['Signed share', share(signed, base)],
+            ['Signed in last 7 days', num.format(sum(daily.slice(-7)))],
+            ['Days since last signing', String(last - daily.findLastIndex((n) => n > 0))],
+          ],
+          charts: [
+            ['Newly signed farmers per day', stacked(days.map((d, i) => [d, 'Signed', daily[i]]), ['Signed'], { interval: 'day' })],
+            ['Cumulative signed farmers', line(days.map((d, i) => [d, (running += daily[i])]))],
+            ['Signing by project unit', stacked(us.flatMap((u) => [[u.name, 'Signed', sum(u.signedD)], [u.name, 'Not yet signed', u.base - sum(u.signedD)]]), ['Signed', 'Not yet signed'], { horizontal: true })],
+            ['Contract exceptions', bars(['Void', 'ID not matching', 'ID small typo', 'Name not matching', 'Name small typo', 'Paused'].map((l, i) => [l, exc[i]]), { left: 130 })],
+          ],
+          table: {
+            head: ['Project unit', 'Region', 'Farmers', 'Signed', 'Signed share', 'Void', 'ID not matching', 'ID small typo', 'Name not matching', 'Name small typo', 'Paused'],
+            rows: us.map((u) => [u.name, u.region, u.base, sum(u.signedD), share(sum(u.signedD), u.base), ...u.exceptions]),
+          },
+        };
+      },
+      status(us) {
+        const status = data.statuses.map((_, i) => sum(us.map((u) => u.status[i])));
+        const pipe = us[0].pipe.map((_, i) => sum(us.map((u) => u.pipe[i])));
+        const spell = [0, 1].map((k) => data.buckets.map((_, i) => sum(us.map((u) => u.spell[k][i]))));
+        const stages = ['1 Awaiting back check', '2 Back check attempted', '3 Checked, still inactive', '4 Reinstated', '5 Confirmed inactive'];
+        return {
+          cards: data.statuses.map((s, i) => [s, num.format(status[i])]),
+          charts: [
+            ['Presumed inactive review, backlog through to resolved', bars(stages.map((s, i) => [s, pipe[i], i > 2]), { left: 172 })],
+            ['Time spent in presumed inactive', stacked(data.buckets.flatMap((b, i) => [[b, 'Moved on', spell[1][i]], [b, 'Still presumed inactive', spell[0][i]]]), ['Moved on', 'Still presumed inactive'], { horizontal: true, left: 120 })],
+          ],
+          table: {
+            head: ['Project unit', 'Region', 'Presumed inactive', 'Awaiting back check', 'Back check attempted', 'Checked, still inactive', 'Confirmed inactive'],
+            rows: us.map((u) => [u.name, u.region, u.status[2], u.pipe[0], u.pipe[1], u.pipe[2], u.status[3]]),
+          },
+        };
+      },
+    };
 
     function draw() {
-      const picked = select.value === 'all' ? data.units : [data.units[+select.value]];
-      const monthly = (key) => dates.map((_, i) => sum(picked.map((u) => u[key][i])));
-      const nest = monthly('nest');
-      const root_ = monthly('root');
-      const farmers = sum(picked.map((u) => u.farmers));
-      const visited = sum(picked.map((u) => u.visited));
-
-      root.querySelector('[data-cards]').replaceChildren(
-        card('Farmers in scope', num.format(farmers)),
-        card('NEST records', num.format(sum(nest))),
-        card('ROOT records', num.format(sum(root_))),
-        card('Physical visits', num.format(sum(monthly('visits')))),
-        card('Farmers visited', pct(visited / farmers)),
-      );
-
+      const us = data.units.filter((u) => (!region.value || u.region === region.value) && (!unit.value || u.name === unit.value));
+      const page = pages[root.querySelector('[name="kpi-page"]:checked').value](us);
       const green = accent();
-      el('months').replaceChildren(
-        Plot.plot(
-          plotBase(el('months'), {
-            marginLeft: 44,
-            x: { label: null },
-            y: { label: null, grid: true },
-            color: { domain: ['ROOT', 'NEST'], range: ['currentColor', green], legend: true },
-            marks: [
-              Plot.lineY(
-                dates.flatMap((date, i) => [
-                  { date, n: root_[i], program: 'ROOT' },
-                  { date, n: nest[i], program: 'NEST' },
-                ]),
-                { x: 'date', y: 'n', stroke: 'program', strokeWidth: 1.75 },
-              ),
-              Plot.ruleY([0]),
-            ],
-          }),
-        ),
-      );
+      $('[data-cards]').replaceChildren(...page.cards.map(([label, value]) => card(label, value)));
 
-      el('units').replaceChildren(
-        Plot.plot(
-          plotBase(el('units'), {
-            height: 320,
-            marginLeft: 60,
-            x: { label: null, percent: true, grid: true, domain: [0, 100] },
-            y: { label: null },
-            marks: [
-              Plot.barX(data.units, {
-                y: 'name',
-                x: (u) => u.visited / u.farmers,
-                fill: (u) => (picked.length === 1 && picked[0] === u ? green : 'currentColor'),
-                fillOpacity: (u) => (picked.length === 1 && picked[0] !== u ? 0.3 : 0.85),
-                sort: { y: '-x' },
-              }),
-            ],
-          }),
-        ),
-      );
+      const figures = page.charts.map(([caption]) => {
+        const f = document.createElement('figure');
+        const c = document.createElement('figcaption');
+        c.className = 'label';
+        c.textContent = caption;
+        f.append(c, document.createElement('div'));
+        return f;
+      });
+      $('[data-charts]').replaceChildren(...figures);
+      page.charts.forEach(([, chart], i) => figures[i].lastChild.append(chart(figures[i].lastChild, green)));
 
-      el('recency').replaceChildren(
-        Plot.plot(
-          plotBase(el('recency'), {
-            marginLeft: 44,
-            marginBottom: 40,
-            x: { label: null, domain: data.recencyLabels },
-            y: { label: null, grid: true },
-            marks: [
-              Plot.barY(data.recencyLabels, {
-                x: (label) => label,
-                y: (_, i) => sum(picked.map((u) => u.recency[i])),
-                fill: (label) => (label === 'Never' ? green : 'currentColor'),
-                fillOpacity: 0.85,
-              }),
-              Plot.ruleY([0]),
-            ],
-          }),
-        ),
-      );
+      const table = document.createElement('table');
+      table.className = 'data';
+      const row = (cells, tag) => {
+        const tr = document.createElement('tr');
+        cells.forEach((v, i) => {
+          const cell = document.createElement(tag);
+          cell.textContent = typeof v === 'number' ? num.format(v) : v;
+          if (i === 1) cell.className = 'text';
+          tr.append(cell);
+        });
+        return tr;
+      };
+      table.createTHead().append(row(page.table.head, 'th'));
+      table.createTBody().append(...page.table.rows.map((r) => row(r, 'td')));
+      $('[data-table]').replaceChildren(table);
     }
 
-    select.addEventListener('change', draw);
+    region.addEventListener('change', () => {
+      unit.value = '';
+      for (const o of unit.options) o.hidden = o.disabled = Boolean(o.dataset.region && region.value && o.dataset.region !== region.value);
+      draw();
+    });
+    unit.addEventListener('change', draw);
+    root.querySelectorAll('[name="kpi-page"]').forEach((r) => r.addEventListener('change', draw));
     redrawOn(root, draw);
     draw();
   });

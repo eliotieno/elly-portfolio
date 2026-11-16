@@ -15,7 +15,7 @@ export const work = [
   {
     slug: 'program-kpi',
     title: 'Program KPI model in Power BI',
-    text: 'One Power BI model built to take over from two hand-refreshed Excel workbooks: 13 tables, 107 measures.',
+    text: 'One Power BI model, read straight from Salesforce, that took over from two hand-refreshed Excel workbooks: 32 tables, 345 measures.',
     meta: 'Power BI, Power Query, DAX',
   },
   {
