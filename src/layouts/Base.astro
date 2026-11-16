@@ -19,11 +19,13 @@ const { title, description } = Astro.props;
     <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta name="theme-color" content="#0b0d0b" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="wrap top">
-      <a class="name" href="/">Elly Otieno</a>
+      <a class="name" href="/"><img src="/brand/mark-on-dark.svg" alt="" width="28" height="28" />Elly Otieno</a>
       <nav aria-label="Main">
         <a href="/work/">Work</a>
         <a href="/about/">About</a>
@@ -51,6 +53,10 @@ const { title, description } = Astro.props;
   }
 
   .name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    align-self: center;
     font-weight: 650;
     text-decoration: none;
   }
