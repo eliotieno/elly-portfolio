@@ -1,0 +1,363 @@
+---
+// The scroll tour: seven projects worked out on one terrain model. The text is plain HTML; the model is drawn
+// by src/lib/workbench.js and is decoration only, so screen readers get the chapters and links.
+const chapters = [
+  {
+    kicker: 'Seven projects, one model',
+    title: 'How the work fits together.',
+    text: 'Scroll through the seven projects below. The farms, charts and records in this model are drawn for illustration.',
+  },
+  {
+    kicker: 'Nursery placement',
+    title: 'Where should a nursery go?',
+    text: 'Compare farm access using distance and elevation, then assign each farm to one site.',
+    href: '/work/nursery-placement/',
+  },
+  {
+    kicker: 'Polygon QA',
+    title: 'Check the boundary.',
+    text: 'Sort polygons into quick confirmation, review and correction queues. Nothing is fixed or approved automatically.',
+    href: '/work/polygon-qa/',
+  },
+  {
+    kicker: 'Polygon lifecycle',
+    title: 'Keep the history.',
+    text: 'The previous boundary is kept. A replacement waits at the gate until a person approves it.',
+    href: '/work/polygon-lifecycle/',
+  },
+  {
+    kicker: 'Program KPI',
+    title: 'Decide what counts.',
+    text: 'Two forms can record the same farm visit. The report counts one physical visit per farmer per day and keeps both records.',
+    href: '/work/program-kpi/',
+  },
+  {
+    kicker: 'Nursery stock',
+    title: 'Know how fresh the count is.',
+    text: 'Separate fresh nursery reports from copied values and missing updates. Only the latest report for each nursery is counted.',
+    href: '/work/nursery-stock/',
+  },
+  {
+    kicker: 'NEST coverage',
+    title: 'Compare reporting coverage.',
+    text: 'NEST records against registered farmers, over similar collection windows: Kenya 7.2%, Uganda 48.2%.',
+    href: '/work/nest-coverage/',
+  },
+  {
+    kicker: 'Retail analytics',
+    title: 'Make the report readable.',
+    text: 'A separate project on the public Superstore sample: sales, profit, product ranking and returns, with a phone layout.',
+    href: '/work/retail-analytics/',
+  },
+  {
+    kicker: 'All seven',
+    title: 'Explore the work.',
+    text: 'GIS, data quality and Power BI. Each case study has the method, the result and a demo on generated or public data.',
+    href: '#work',
+    link: 'See the full list',
+  },
+];
+---
+
+<section class="bench" data-bench aria-labelledby="bench-h">
+  <div class="stage">
+    <div class="copy wrap">
+      <ol class="chapters">
+        {
+          chapters.map((c, i) => (
+            <li data-ch={i}>
+              <p class="label kicker">{c.kicker}</p>
+              {i === 0 ? <h2 id="bench-h">{c.title}</h2> : <h3>{c.title}</h3>}
+              <p class="text">{c.text}</p>
+              {c.href && (
+                <a class="go label" href={c.href}>
+                  {c.link ?? 'Read the case study'}
+                </a>
+              )}
+            </li>
+          ))
+        }
+      </ol>
+      <div class="scale" aria-hidden="true">
+        {chapters.slice(1).map(() => <i />)}
+      </div>
+    </div>
+    <div class="model" aria-hidden="true">
+      <canvas></canvas>
+      <svg class="wb-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Without the script: a plain list of the chapters, no model. */
+  .bench {
+    border-top: 1px solid var(--line);
+  }
+
+  .model {
+    display: none;
+  }
+
+  .chapters {
+    display: grid;
+    gap: 2.5rem;
+    padding-block: var(--section);
+  }
+
+  .kicker {
+    color: var(--accent);
+    margin-bottom: 0.9rem;
+  }
+
+  h2,
+  h3 {
+    font-size: clamp(2rem, 4.4vw, 4.25rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    max-width: 13ch;
+    text-wrap: balance;
+  }
+
+  .text {
+    margin-top: 1.25rem;
+    max-width: 40ch;
+    font-size: clamp(1.05rem, 1.35vw, 1.25rem);
+    line-height: 1.45;
+    color: var(--muted);
+  }
+
+  .go {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 0.2rem;
+  }
+
+  .go:hover {
+    color: var(--accent);
+  }
+
+  .scale {
+    display: none;
+  }
+
+  /* With the script: a tall section, a sticky stage, one chapter at a time. */
+  .bench.live {
+    height: 980svh;
+  }
+
+  .live .stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .live .copy {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    height: min(30rem, 70svh);
+    padding-inline-end: 0;
+  }
+
+  .live .chapters {
+    position: relative;
+    height: 100%;
+    padding: 0;
+  }
+
+  .live .chapters li {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition:
+      opacity 0.45s ease,
+      transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .live .chapters li.on {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* A scale bar for progress: alternate segments, the current one in green. */
+  .live .scale {
+    position: absolute;
+    left: var(--gutter);
+    bottom: 0;
+    display: flex;
+    width: min(16rem, 70%);
+    height: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent);
+  }
+
+  .scale i {
+    flex: 1;
+    transition: background 0.3s;
+  }
+
+  .scale i:nth-child(odd) {
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+
+  .scale i.on {
+    background: var(--accent);
+  }
+
+  .live .model {
+    display: block;
+    position: relative;
+    justify-self: center;
+    width: min(100%, calc(86svh * var(--ar, 1.2)));
+    aspect-ratio: var(--ar, 1.2);
+    margin-inline-end: var(--gutter);
+  }
+
+  .model canvas,
+  .model svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .model svg {
+    overflow: hidden;
+  }
+
+  .model :global(.wb-svg *) {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .model :global(.wb-svg text) {
+    font-family: var(--mono);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .live .chapters li {
+      transition: none;
+      transform: none;
+    }
+  }
+
+  /* Phones: model on top, text below, both in the sticky stage. */
+  @media (max-width: 820px) {
+    .live .stage {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      align-items: start;
+      padding-top: 3.5rem;
+    }
+
+    .live .model {
+      order: -1;
+      width: 100%;
+      margin: 0;
+      padding-inline: 0.5rem;
+    }
+
+    .live .copy {
+      height: 100%;
+      min-height: 15rem;
+    }
+
+    .live .chapters li {
+      justify-content: flex-start;
+      padding-top: 1rem;
+    }
+
+    h2,
+    h3 {
+      font-size: clamp(1.75rem, 8vw, 2.4rem);
+    }
+
+    .text {
+      margin-top: 0.75rem;
+      font-size: 1rem;
+    }
+
+    .go {
+      margin-top: 0.9rem;
+    }
+
+    .live .scale {
+      bottom: 1.25rem;
+    }
+  }
+</style>
+
+<script>
+  import { initWorkbench } from '../lib/workbench.js';
+
+  const root = document.querySelector('[data-bench]');
+  if (root && root.querySelector('svg').getBBox) {
+    root.classList.add('live');
+    const render = initWorkbench(root.querySelector('.model'));
+    const items = [...root.querySelectorAll('.chapters li')];
+    const ticks = [...root.querySelectorAll('.scale i')];
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Scroll to pose: a pause on each of the nine poses, a longer stretch for each move between them.
+    const segs = [[0.5, 0, 0]];
+    for (let i = 0; i < 8; i++) segs.push([1, i, i + 1], [i < 7 ? 0.45 : 0.9, i + 1, i + 1]);
+    const total = segs.reduce((a, s) => a + s[0], 0);
+    function target() {
+      const r = root.getBoundingClientRect();
+      let u = Math.min(1, Math.max(0, -r.top / (root.offsetHeight - innerHeight))) * total;
+      for (const [len, a, b] of segs) {
+        if (u <= len) return a + (b - a) * (u / len);
+        u -= len;
+      }
+      return 8;
+    }
+
+    let shown = -1, cur = target(), active = -1, running = false, last = 0;
+    function chapter(p) {
+      const n = Math.round(p);
+      if (n === active) return;
+      active = n;
+      items.forEach((li, i) => {
+        li.classList.toggle('on', i === n);
+        li.inert = i !== n;
+      });
+      ticks.forEach((t, i) => t.classList.toggle('on', i === n - 1));
+    }
+    // Ease toward the scroll position, so a flick of the wheel becomes a smooth move.
+    function frame(now) {
+      const goal = reduced.matches ? Math.round(target()) : target();
+      const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+      last = now;
+      cur = reduced.matches ? goal : cur + (goal - cur) * (1 - Math.exp(-dt * 7));
+      if (Math.abs(goal - cur) < 0.0005) cur = goal;
+      if (cur !== shown) {
+        render(cur);
+        shown = cur;
+      }
+      chapter(cur);
+      running = cur !== goal;
+      if (running) requestAnimationFrame(frame);
+    }
+    const kick = () => {
+      if (!running) {
+        running = true;
+        last = performance.now();
+        requestAnimationFrame(frame);
+      }
+    };
+    addEventListener('scroll', kick, { passive: true });
+    addEventListener('resize', kick);
+    kick();
+  }
+</script>

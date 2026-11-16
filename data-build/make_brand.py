@@ -3,7 +3,7 @@
     py data-build/make_brand.py
 
 The mark is the nursery model drawn as a symbol: one site (green circle) joined to the farm plots
-(small squares) it serves. The wordmark is "Elly Otieno" in Bricolage Grotesque, the site typeface,
+(small squares) it serves. The wordmark is "Elly Otieno" in Schibsted Grotesk, the site typeface,
 converted to outlines so the files need no font installed. Needs fontTools, brotli, skia-pathops, numpy and Pillow.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "public" / "brand"
-FONT = ROOT / "node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2"
+FONT = ROOT / "node_modules/@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2"
 
 # Two schemes, matching the site tokens: dark (the site) and light (CVs, documents, white backgrounds).
 DARK = {"bg": "#0b0d0b", "ink": "#edece6", "accent": "#63c283"}

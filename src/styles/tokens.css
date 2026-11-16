@@ -9,8 +9,10 @@
   --line: color-mix(in srgb, var(--ink) 16%, var(--bg));
   --panel: color-mix(in srgb, var(--ink) 5%, var(--bg));
 
-  --display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
-  --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  /* Schibsted Grotesk: a newsroom grotesk, built for reading figures in running text. Fragment Mono: a
+     Helvetica-derived mono, so labels and numbers sit beside the grotesk without a change of voice. */
+  --display: 'Schibsted Grotesk Variable', system-ui, sans-serif;
+  --mono: 'Fragment Mono', ui-monospace, monospace;
 
   --gutter: clamp(1rem, 4vw, 3.5rem);
   --section: clamp(4rem, 10vw, 9rem);

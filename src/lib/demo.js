@@ -66,7 +66,7 @@ export function plotBase(el, extra = {}) {
   return {
     width: Math.max(280, el.clientWidth),
     height: 260,
-    style: { background: 'transparent', fontFamily: "'JetBrains Mono Variable', monospace", fontSize: '11px', overflow: 'visible' },
+    style: { background: 'transparent', fontFamily: "'Fragment Mono', monospace", fontSize: '11px', overflow: 'visible' },
     ...extra,
   };
 }

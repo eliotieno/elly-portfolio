@@ -11,8 +11,8 @@
     "check": "astro build && node checks/copy_check.mjs && py checks/leak_check.py"
   },
   "dependencies": {
-    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
-    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
+    "@fontsource/fragment-mono": "^5.3.0",
     "@observablehq/plot": "^0.6.19",
     "astro": "^7.4.12",
     "maplibre-gl": "^6.18.0"
