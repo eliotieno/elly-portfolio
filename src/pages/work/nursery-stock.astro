@@ -1,0 +1,118 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import CtnDashboard from '../../components/CtnDashboard.astro';
+---
+
+<CaseStudy
+  slug="nursery-stock"
+  facts={[
+    ['Where', 'Trees for the Future, Kenya'],
+    ['Tools', 'Power BI Desktop, Power Query, DAX, Python'],
+    ['Source', 'One Excel log on SharePoint, updated weekly'],
+  ]}
+>
+  <section class="split">
+    <h2 class="label">Problem</h2>
+    <div class="prose">
+      <p>
+        The community tree nurseries report their stock in a shared Excel log. Each week, field officers enter how many
+        seedlings each nursery holds, by species, growth stage and quality.
+      </p>
+      <p>
+        A total taken from that workbook hides two things. It cannot say whether a number was counted this week, copied
+        from last week or never entered. And because every week restates the same seedlings, adding weeks together
+        counts them many times over.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">What I did</h2>
+    <div class="prose">
+      <p>
+        I built a nine-page Power BI dashboard that reads the log straight from SharePoint. The model has 10 tables, 11
+        relationships and 58 measures. A Python script generates the whole project, and a second script checks it
+        before it is opened in Power BI.
+      </p>
+      <p>The rules it applies are written on the last page of the dashboard, so readers can check them:</p>
+      <ul class="list">
+        <li>
+          Stock is each nursery's own latest report on or before the week shown, added across nurseries. Weeks are
+          never added together.
+        </li>
+        <li>
+          A report that matches the one before it, line for line, is marked as copied. Two in a row is flagged as not
+          recounted, and a missed week as not updated.
+        </li>
+        <li>
+          A fall of 20 percent or more, and of 500 seedlings or more, with no comment saying stock was distributed or
+          disposed of, is listed as an unexplained drop.
+        </li>
+        <li>
+          The sprout rate is grafts sprouting or ready over all grafts. It is shown only while some grafts are still
+          healing, because after that there is nothing left to compare.
+        </li>
+        <li>
+          Entries dated in a future year are matched to the officers' entry log and moved to the right year. Each
+          repair is still listed, because the workbook itself holds the typo.
+        </li>
+      </ul>
+      <p>
+        One page lists every row that needs fixing, with the workbook row to open, so it can be sent back to the
+        officer who entered it.
+      </p>
+    </div>
+  </section>
+
+  <CtnDashboard />
+
+  <section class="split">
+    <h2 class="label">Reading the demo</h2>
+    <div class="prose">
+      <p>
+        This is a web rebuild of four of the nine pages on a generated log. Pick an earlier week to see the dashboard as
+        it stood then. On the weekly reporting page, compare Nursery A with Nursery B: both file most weeks, but B often
+        files the same numbers again.
+      </p>
+      <p>
+        The stock over time page shows why weeks are not added together. The columns are what was entered each week
+        and dip whenever a nursery skips a week. The line carries each nursery's latest report forward and does not.
+      </p>
+      <p>The generated log has no comments, so every large fall in it counts as unexplained.</p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Result</h2>
+    <div class="prose">
+      <p>
+        On its first run against the real log, the dashboard showed nurseries filing identical reports several weeks in
+        a row, a week in which no nursery reported, and a large fall in recorded stock with no distribution or disposal
+        comment against it.
+      </p>
+    </div>
+  </section>
+
+  <section class="split">
+    <h2 class="label">Next steps</h2>
+    <div class="prose">
+      <p>
+        The dashboard reads the 2026 log only, and a 2027 log means changing one file name in the queries. It has no
+        phone layout yet.
+      </p>
+    </div>
+  </section>
+</CaseStudy>
+
+<style>
+  .list {
+    display: grid;
+    gap: 0.75rem;
+    padding-left: 1.1em;
+    list-style: square;
+  }
+
+  .list ::marker {
+    color: var(--accent);
+  }
+</style>

@@ -70,7 +70,7 @@ const asOf = new Date(data.asOf).toLocaleDateString('en-GB', { day: 'numeric', m
 </style>
 
 <script>
-  import { accent, card, num, pct, plotBase, redrawOn, whenVisible } from '../lib/demo.js';
+  import { chartKit, num, pct, redrawOn, renderPage, whenVisible } from '../lib/demo.js';
 
   const root = document.querySelector('[data-kpi]');
   const $ = (sel) => root.querySelector(sel);
@@ -86,43 +86,7 @@ const asOf = new Date(data.asOf).toLocaleDateString('en-GB', { day: 'numeric', m
     const days = dates(data.signStart, data.units[0].signedD.length, 1);
     const share = (a, b) => (b ? pct(a / b) : 'n/a');
 
-    // Chart builders. Each returns a function that draws into a figure once it has a width.
-    const bars = (rows, { percent = false, left = 150 } = {}) => (el, green) =>
-      Plot.plot(
-        plotBase(el, {
-          height: 40 + rows.length * 26,
-          marginLeft: left,
-          x: { label: null, grid: true, percent, ...(percent ? { domain: [0, 100] } : {}) },
-          y: { label: null, domain: rows.map((r) => r[0]) },
-          marks: [Plot.barX(rows, { y: '0', x: '1', fill: (r) => (r[2] ? green : 'currentColor'), fillOpacity: 0.85 }), Plot.ruleX([0])],
-        }),
-      );
-    // Stacked bars or columns from rows of [category, series, value]. The first series is green, the second ink.
-    const stacked = (rows, series, { horizontal = false, interval, left = 70 } = {}) => (el, green) => {
-      const scale = { label: null, grid: true };
-      const cat = horizontal ? { label: null, domain: [...new Set(rows.map((r) => r[0]))] } : { label: null };
-      const mark = horizontal ? Plot.barX : interval ? Plot.rectY : Plot.barY;
-      const ch = { fill: '1', fillOpacity: 0.85, ...(horizontal ? { y: '0', x: '2' } : { x: '0', y: '2', interval }) };
-      return Plot.plot(
-        plotBase(el, {
-          height: horizontal ? 60 + cat.domain.length * 24 : 260,
-          marginLeft: horizontal ? left : 44,
-          x: horizontal ? scale : cat,
-          y: horizontal ? cat : scale,
-          color: { domain: series, range: [green, 'currentColor'], legend: series.length > 1 },
-          marks: [mark(rows, ch), horizontal ? Plot.ruleX([0]) : Plot.ruleY([0])],
-        }),
-      );
-    };
-    const line = (rows) => (el, green) =>
-      Plot.plot(
-        plotBase(el, {
-          marginLeft: 44,
-          x: { label: null },
-          y: { label: null, grid: true },
-          marks: [Plot.areaY(rows, { x: '0', y: '1', fill: green, fillOpacity: 0.12 }), Plot.lineY(rows, { x: '0', y: '1', stroke: green, strokeWidth: 1.75 }), Plot.ruleY([0])],
-        }),
-      );
+    const { bars, stacked, line } = chartKit(Plot);
 
     // One function per report page. Each returns cards, charts and a table for the units picked.
     const pages = {
@@ -223,36 +187,7 @@ const asOf = new Date(data.asOf).toLocaleDateString('en-GB', { day: 'numeric', m
 
     function draw() {
       const us = data.units.filter((u) => (!region.value || u.region === region.value) && (!unit.value || u.name === unit.value));
-      const page = pages[root.querySelector('[name="kpi-page"]:checked').value](us);
-      const green = accent();
-      $('[data-cards]').replaceChildren(...page.cards.map(([label, value]) => card(label, value)));
-
-      const figures = page.charts.map(([caption]) => {
-        const f = document.createElement('figure');
-        const c = document.createElement('figcaption');
-        c.className = 'label';
-        c.textContent = caption;
-        f.append(c, document.createElement('div'));
-        return f;
-      });
-      $('[data-charts]').replaceChildren(...figures);
-      page.charts.forEach(([, chart], i) => figures[i].lastChild.append(chart(figures[i].lastChild, green)));
-
-      const table = document.createElement('table');
-      table.className = 'data';
-      const row = (cells, tag) => {
-        const tr = document.createElement('tr');
-        cells.forEach((v, i) => {
-          const cell = document.createElement(tag);
-          cell.textContent = typeof v === 'number' ? num.format(v) : v;
-          if (i === 1) cell.className = 'text';
-          tr.append(cell);
-        });
-        return tr;
-      };
-      table.createTHead().append(row(page.table.head, 'th'));
-      table.createTBody().append(...page.table.rows.map((r) => row(r, 'td')));
-      $('[data-table]').replaceChildren(table);
+      renderPage(root, pages[root.querySelector('[name="kpi-page"]:checked').value](us));
     }
 
     region.addEventListener('change', () => {

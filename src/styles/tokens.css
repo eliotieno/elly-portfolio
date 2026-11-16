@@ -252,3 +252,37 @@ table.data .text {
   text-align: left;
   white-space: normal;
 }
+
+table.data caption {
+  padding: 0 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+}
+
+table.data + table.data {
+  margin-top: 2rem;
+}
+
+/* Week-by-week status grid: one narrow cell per week. Each cell carries a letter, so colour is not the only cue. */
+table.grid th,
+table.grid td {
+  padding: 0.3rem 0.25rem;
+  text-align: center;
+  white-space: pre-line;
+}
+
+table.grid .c {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+table.grid .s {
+  background: var(--line);
+}
+
+table.grid .m {
+  color: var(--muted);
+}

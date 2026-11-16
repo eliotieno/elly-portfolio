@@ -1,4 +1,4 @@
-// The six case studies, in display order. `slug` is the page under /work/.
+// The case studies, in display order. `slug` is the page under /work/.
 export const work = [
   {
     slug: 'nursery-placement',
@@ -17,6 +17,12 @@ export const work = [
     title: 'Program KPI model in Power BI',
     text: 'One Power BI model, read straight from Salesforce, that took over from two hand-refreshed Excel workbooks: 32 tables, 345 measures.',
     meta: 'Power BI, Power Query, DAX',
+  },
+  {
+    slug: 'nursery-stock',
+    title: 'Nursery stock dashboard in Power BI',
+    text: 'A weekly nursery log turned into a dashboard that shows which counts are fresh, which were copied forward and which are missing.',
+    meta: 'Power BI, Power Query, Python',
   },
   {
     slug: 'retail-analytics',

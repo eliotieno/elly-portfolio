@@ -207,11 +207,64 @@ def kpi(unit):
     }
 
 
+# Nursery stock demo: a weekly log with the reporting habits the dashboard was built to expose.
+CTN_FIRST = date(2026, 3, 6)  # a Friday; every report is filed against the Friday of its week
+CTN_WEEKS = 31
+NURSERIES = ["Nursery A", "Nursery B", "Nursery C", "Nursery D", "Nursery E"]
+SPECIES = ["Avocado", "Lemon", "Mango", "Orange"]
+STAGES = [  # label, live stock?
+    ("0 Seed received", 1), ("1 Planted", 1), ("2 Seedling below 30cm", 1), ("3 Ready to graft", 1),
+    ("4 Grafted, healing", 1), ("5 Grafted, sprouting", 1), ("6 Ready to distribute", 1),
+    ("7 Distributed", 0), ("X Damaged or disposed", 0),
+]
+# Chance each nursery files a fresh count, copies last week's report, or files nothing.
+HABITS = [(0.92, 0.06, 0.02), (0.6, 0.35, 0.05), (0.75, 0.1, 0.15), (0.85, 0.1, 0.05), (0.7, 0.25, 0.05)]
+
+
+def ctn():
+    """reports[nursery][week] is None (nothing filed) or a flat species x stage list of quantities."""
+    advance = np.array([0.5, 0.35, 0.15, 0.0, 0.3, 0.25])  # weekly share moving up from stages 0 to 5
+    reports = []
+    for n, habit in enumerate(HABITS):
+        stock = np.zeros((len(SPECIES), 9), int)
+        stock[:, 0] = rng.integers(2000, 6000, len(SPECIES))
+        filed, last = [], None
+        for w in range(CTN_WEEKS):
+            rate = advance.copy()
+            rate[3] = 0.3 if 12 <= w <= 18 else 0.0  # grafting happens in one stretch of the season
+            moved = rng.binomial(stock[:, :6], rate)
+            stock[:, :6] -= moved
+            stock[:, 1:7] += moved
+            lost = rng.binomial(stock[:, :7], [0.005, 0.01, 0.008, 0.003, 0.02, 0.005, 0.003])
+            stock[:, :7] -= lost
+            stock[:, 8] += lost.sum(axis=1)
+            if w >= 22 and w % 3 == 1:  # distribution days
+                out = rng.binomial(stock[:, 6], 0.6)
+                stock[:, 6] -= out
+                stock[:, 7] += out
+            if n == 2 and w == 20:  # stock that leaves the log with nothing recorded against it
+                stock[:, :7] -= rng.binomial(stock[:, :7], 0.35)
+            kind = rng.choice(3, p=habit)
+            if w == 11:
+                kind = 2  # one week nobody reported
+            if w >= CTN_WEEKS - 3:
+                kind = [0, 0 if w < CTN_WEEKS - 1 else 1, 0 if w < CTN_WEEKS - 1 else 2, 0, 1][n]
+            if kind == 0 or last is None:
+                last = stock.ravel().tolist()
+            filed.append(None if kind == 2 else last)
+        assert all(f is None or min(f) >= 0 for f in filed) and filed[11] is None
+        reports.append(filed)
+    assert reports[4][-1] == reports[4][-3] and reports[2][-1] is None
+    weeks = [(CTN_FIRST + timedelta(7 * w)).isoformat() for w in range(CTN_WEEKS)]
+    return {"weeks": weeks, "nurseries": NURSERIES, "species": SPECIES, "stages": STAGES, "reports": reports}
+
+
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     unit, lon, lat = make_farms()
     print("nursery scenarios")
     (OUT / "nursery.json").write_text(json.dumps(nursery(unit, lon, lat), separators=(",", ":")))
     (OUT / "kpi.json").write_text(json.dumps(kpi(unit), separators=(",", ":")))
+    (OUT / "ctn.json").write_text(json.dumps(ctn(), separators=(",", ":")))
     for f in sorted(OUT.glob("*.json")):
         print(f"wrote {f.name} ({f.stat().st_size / 1024:.0f} KB)")

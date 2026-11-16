@@ -1,0 +1,258 @@
+---
+import data from '../../public/data/ctn.json';
+
+const pages = [
+  ['week', 'This week'],
+  ['reporting', 'Weekly reporting'],
+  ['time', 'Stock over time'],
+  ['grafting', 'Grafting'],
+];
+const label = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+---
+
+<section class="demo" data-ctn aria-labelledby="ctn-h">
+  <div class="demo-head">
+    <h2 class="label" id="ctn-h">Four dashboard pages, rebuilt on a generated nursery log</h2>
+    <fieldset class="controls">
+      <legend class="label">Page</legend>
+      {
+        pages.map(([key, name], i) => (
+          <label>
+            <input type="radio" name="ctn-page" value={key} checked={i === 0} /> {name}
+          </label>
+        ))
+      }
+    </fieldset>
+    <div class="controls">
+      <label>
+        Week ending
+        <select data-week>
+          {data.weeks.map((w, i) => <option value={i} selected={i === data.weeks.length - 1}>{label(w)}</option>)}
+        </select>
+      </label>
+      <label>
+        Nursery
+        <select data-nursery>
+          <option value="">All nurseries</option>
+          {data.nurseries.map((n, i) => <option value={i}>{n}</option>)}
+        </select>
+      </label>
+      <label>
+        Species
+        <select data-species>
+          <option value="">All species</option>
+          {data.species.map((s, i) => <option value={i}>{s}</option>)}
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="demo-body" aria-live="polite">
+    <div class="cards" data-cards></div>
+    <div class="charts" data-charts></div>
+    <div class="scroll" data-table></div>
+    <noscript><p>The charts need JavaScript.</p></noscript>
+  </div>
+  <p class="demo-foot label">
+    A generated log: five nurseries, four species, {data.weeks.length} weeks. No real nurseries, staff or stock figures.
+  </p>
+</section>
+
+<style>
+  fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  legend {
+    float: left;
+    padding: 0;
+    margin-right: 1rem;
+  }
+
+  [data-table] {
+    margin-top: 2rem;
+  }
+</style>
+
+<script>
+  import { chartKit, num, pct, redrawOn, renderPage, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-ctn]');
+  const $ = (sel) => root.querySelector(sel);
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+
+  whenVisible(root, async () => {
+    const [Plot, data] = await Promise.all([import('@observablehq/plot'), fetch('/data/ctn.json').then((r) => r.json())]);
+    const { bars, stacked, line } = chartKit(Plot);
+    const S = data.stages.length;
+    const LIVE = data.stages.map(([, live], i) => (live ? i : -1)).filter((i) => i >= 0);
+    const dates = data.weeks.map((w) => new Date(w));
+    const short = (w) => dates[w].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const share = (a, b) => (b ? pct(a / b) : 'n/a');
+
+    // The log. A report is null when nothing was filed that week.
+    const report = (n, w) => data.reports[n][w];
+    const lastWeek = (n, w) => {
+      while (w >= 0 && !report(n, w)) w--;
+      return w;
+    };
+    // Identical to the nursery's previous report, line for line: copied forward, not recounted.
+    const same = (n, w) => {
+      const p = lastWeek(n, w - 1);
+      return p >= 0 && report(n, w).every((q, i) => q === report(n, p)[i]);
+    };
+    const unchanged = (n, w) => {
+      let k = 0;
+      for (; w >= 0 && report(n, w) && same(n, w); w = lastWeek(n, w - 1)) k++;
+      return k;
+    };
+    function status(n, asOf) {
+      const last = lastWeek(n, asOf);
+      if (last < 0) return 'No data';
+      if (last < asOf) return 'Not updated';
+      const k = unchanged(n, last);
+      return k >= 2 ? 'Copied, not recounted' : k === 1 ? 'Same as last week' : 'Updated';
+    }
+    // A fall of 20% or more and 500 or more against the nursery's previous report.
+    function drops(ns, asOf) {
+      const out = [];
+      for (const n of ns)
+        for (let w = 1; w <= asOf; w++) {
+          const p = lastWeek(n, w - 1);
+          if (!report(n, w) || p < 0) continue;
+          const [before, after] = [sum(report(n, p)), sum(report(n, w))];
+          if (after - before <= -500 && (after - before) / before <= -0.2) out.push([short(w), data.nurseries[n], before, after, after - before]);
+        }
+      return out;
+    }
+
+    function draw() {
+      const asOf = +$('[data-week]').value;
+      const ns = $('[data-nursery]').value === '' ? data.nurseries.map((_, i) => i) : [+$('[data-nursery]').value];
+      const sp = $('[data-species]').value === '' ? data.species.map((_, i) => i) : [+$('[data-species]').value];
+      // Quantity in one report for the species picked, at the stages given.
+      const qty = (r, stages = LIVE) => (r ? sum(sp.flatMap((s) => stages.map((st) => r[s * S + st]))) : 0);
+      // Stock is each nursery's own latest report on or before the week shown. Weeks are never added together.
+      const latest = (n, w = asOf) => report(n, lastWeek(n, w));
+      const stock = (stages, w = asOf) => sum(ns.map((n) => qty(latest(n, w), stages)));
+      const entered = (w, stages) => sum(ns.map((n) => qty(report(n, w), stages)));
+      const stageRows = data.stages.map(([name], st) => [name, stock([st]), st === 6]);
+
+      const pages = {
+        week: () => ({
+          cards: [
+            ['Live stock', num.format(stock(LIVE))],
+            ['Ready to distribute', num.format(stock([6]))],
+            ['Ready to graft', num.format(stock([3]))],
+            ['Grafted, sprouting', num.format(stock([5]))],
+            ['Recorded as distributed', num.format(stock([7]))],
+            ['Recorded as lost', num.format(stock([8]))],
+          ],
+          charts: [
+            ['Live stock by nursery', bars(ns.map((n) => [data.nurseries[n], qty(latest(n))]), { left: 80 })],
+            ['Live stock by species', bars(sp.map((s) => [data.species[s], sum(ns.map((n) => (latest(n) ? sum(LIVE.map((st) => latest(n)[s * S + st])) : 0)))]), { left: 80 })],
+          ],
+          tables: [
+            {
+              caption: 'Nursery check',
+              head: ['Nursery', 'Last report', 'Status', 'Reports unchanged', 'Live stock', 'Change against previous report'],
+              text: [1, 2],
+              rows: ns.map((n) => {
+                const last = lastWeek(n, asOf);
+                const prev = lastWeek(n, last - 1);
+                return [data.nurseries[n], last < 0 ? 'None' : short(last), status(n, asOf), last < 0 ? 0 : unchanged(n, last), qty(latest(n)), prev < 0 ? 'n/a' : qty(report(n, last)) - qty(report(n, prev))];
+              }),
+            },
+          ],
+        }),
+        reporting() {
+          const due = (asOf + 1) * ns.length;
+          const filed = (n) => dates.slice(0, asOf + 1).filter((_, w) => report(n, w)).length;
+          const fresh = (n) => dates.slice(0, asOf + 1).filter((_, w) => report(n, w) && !same(n, w)).length;
+          const cell = (n, w) => (!report(n, w) ? { t: '·', c: 'm' } : same(n, w) ? { t: 'S', c: 's' } : { t: 'C', c: 'c' });
+          return {
+            cards: [
+              ['Reports due', num.format(due)],
+              ['Reports filed', num.format(sum(ns.map(filed)))],
+              ['Fresh counts', num.format(sum(ns.map(fresh)))],
+              ['Reporting rate', share(sum(ns.map(filed)), due)],
+              ['Recount rate', share(sum(ns.map(fresh)), due)],
+            ],
+            charts: [['Share of due weeks with a fresh count, by nursery', bars(ns.map((n) => [data.nurseries[n], fresh(n) / (asOf + 1)]), { percent: true, left: 80 })]],
+            tables: [
+              {
+                caption: 'Report status by week. C is a fresh count, S is the same as the report before, a dot is no report.',
+                cls: 'grid',
+                text: [],
+                head: ['Nursery', ...dates.slice(0, asOf + 1).map((_, w) => short(w).replace(' ', '\n'))],
+                rows: ns.map((n) => [data.nurseries[n], ...dates.slice(0, asOf + 1).map((_, w) => cell(n, w))]),
+              },
+              {
+                caption: 'Discipline by nursery',
+                head: ['Nursery', 'Status', 'Weeks due', 'Reports filed', 'Fresh counts', 'Reporting rate', 'Recount rate'],
+                rows: ns.map((n) => [data.nurseries[n], status(n, asOf), asOf + 1, filed(n), fresh(n), share(filed(n), asOf + 1), share(fresh(n), asOf + 1)]),
+              },
+            ],
+          };
+        },
+        time() {
+          const found = drops(ns, asOf);
+          const now = stock(LIVE);
+          const before = asOf ? stock(LIVE, asOf - 1) : 0;
+          return {
+            cards: [
+              ['Live stock, week shown', num.format(now)],
+              ['Week before', num.format(before)],
+              ['Net change', num.format(now - before)],
+              ['Unexplained drops so far', String(found.length)],
+            ],
+            charts: [
+              ['Live stock as entered each week. A skipped week shows as a dip.', stacked(dates.slice(0, asOf + 1).map((d, w) => [d, 'Entered', entered(w, LIVE)]), ['Entered'], { interval: 'week' })],
+              ["Live stock from each nursery's latest report", line(dates.slice(0, asOf + 1).map((d, w) => [d, stock(LIVE, w)]))],
+            ],
+            tables: [
+              {
+                caption: 'Unexplained drops: total recorded stock fell 20% or more, and by 500 or more, against the previous report',
+                head: ['Week ending', 'Nursery', 'Before', 'After', 'Change'],
+                rows: found.length ? found : [['None', '', '', '', '']],
+              },
+            ],
+          };
+        },
+        grafting() {
+          // The rate only means something while grafts are still waiting at stage 4.
+          const rate = (w) => (entered(w, [4]) ? entered(w, [5, 6]) / entered(w, [4, 5, 6]) : null);
+          let last = asOf;
+          while (last >= 0 && !entered(last, [4])) last--;
+          return {
+            cards: [
+              ['Ready to graft', num.format(stock([3]))],
+              ['Grafted, healing', num.format(stock([4]))],
+              ['Grafted, sprouting', num.format(stock([5]))],
+              ['Last week with grafts healing', last < 0 ? 'None' : short(last)],
+              ['Sprout rate that week', last < 0 ? 'n/a' : pct(rate(last))],
+            ],
+            charts: [
+              ['Stock at each stage, week shown', bars(stageRows, { left: 160 })],
+              ['Sprout rate by week: grafts sprouting or ready, over all grafts', line(dates.slice(0, asOf + 1).map((d, w) => [d, rate(w)]), { percent: true })],
+            ],
+            tables: [
+              {
+                caption: 'Species by stage, week shown',
+                head: ['Stage', ...sp.map((s) => data.species[s])],
+                text: [],
+                rows: data.stages.map(([name], st) => [name, ...sp.map((s) => sum(ns.map((n) => (latest(n) ? latest(n)[s * S + st] : 0))))]),
+              },
+            ],
+          };
+        },
+      };
+      renderPage(root, pages[root.querySelector('[name="ctn-page"]:checked').value]());
+    }
+
+    root.querySelectorAll('select, [name="ctn-page"]').forEach((c) => c.addEventListener('change', draw));
+    redrawOn(root, draw);
+    draw();
+  });
+</script>

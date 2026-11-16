@@ -92,3 +92,89 @@ export function card(label, value) {
   d.append(b, s);
   return d;
 }
+
+/**
+ * Chart builders shared by the dashboards. Each returns a function that draws into an element once it has a width.
+ * Rows are arrays, so '0', '1' and '2' below are column positions.
+ */
+export function chartKit(Plot) {
+  // Horizontal bars from rows of [label, value, highlighted?].
+  const bars = (rows, { percent = false, left = 150 } = {}) => (el, green) =>
+    Plot.plot(
+      plotBase(el, {
+        height: 40 + rows.length * 26,
+        marginLeft: left,
+        x: { label: null, grid: true, percent, ...(percent ? { domain: [0, 100] } : {}) },
+        y: { label: null, domain: rows.map((r) => r[0]) },
+        marks: [Plot.barX(rows, { y: '0', x: '1', fill: (r) => (r[2] ? green : 'currentColor'), fillOpacity: 0.85 }), Plot.ruleX([0])],
+      }),
+    );
+  // Stacked bars or columns from rows of [category, series, value]. The first series is green, the second ink.
+  const stacked = (rows, series, { horizontal = false, interval, left = 70 } = {}) => (el, green) => {
+    const scale = { label: null, grid: true };
+    const cat = horizontal ? { label: null, domain: [...new Set(rows.map((r) => r[0]))] } : { label: null };
+    const mark = horizontal ? Plot.barX : Plot.rectY;
+    const ch = { fill: '1', fillOpacity: 0.85, ...(horizontal ? { y: '0', x: '2' } : { x: '0', y: '2', interval }) };
+    return Plot.plot(
+      plotBase(el, {
+        height: horizontal ? 60 + cat.domain.length * 24 : 260,
+        marginLeft: horizontal ? left : 44,
+        x: horizontal ? scale : cat,
+        y: horizontal ? cat : scale,
+        color: { domain: series, range: [green, 'currentColor'], legend: series.length > 1 },
+        marks: [mark(rows, ch), horizontal ? Plot.ruleX([0]) : Plot.ruleY([0])],
+      }),
+    );
+  };
+  // A line over time from rows of [date, value]. A null value leaves a gap.
+  const line = (rows, { percent = false } = {}) => (el, green) =>
+    Plot.plot(
+      plotBase(el, {
+        marginLeft: 44,
+        x: { label: null },
+        y: { label: null, grid: true, percent, ...(percent ? { domain: [0, 100] } : {}) },
+        marks: [Plot.areaY(rows, { x: '0', y: '1', fill: green, fillOpacity: 0.12 }), Plot.lineY(rows, { x: '0', y: '1', stroke: green, strokeWidth: 1.75 }), Plot.ruleY([0])],
+      }),
+    );
+  return { bars, stacked, line };
+}
+
+/**
+ * Fill a dashboard from one page description: { cards: [[label, value]], charts: [[caption, draw]], tables: [{ head, rows, cls, text }] }.
+ * A table cell is a number, a string, or { t: text, c: class }. `text` lists the columns to left-align.
+ */
+export function renderPage(root, page) {
+  const green = accent();
+  root.querySelector('[data-cards]').replaceChildren(...page.cards.map(([label, value]) => card(label, value)));
+
+  const figures = page.charts.map(([caption]) => {
+    const f = document.createElement('figure');
+    const c = document.createElement('figcaption');
+    c.className = 'label';
+    c.textContent = caption;
+    f.append(c, document.createElement('div'));
+    return f;
+  });
+  root.querySelector('[data-charts]').replaceChildren(...figures);
+  page.charts.forEach(([, draw], i) => figures[i].lastChild.append(draw(figures[i].lastChild, green)));
+
+  const tables = (page.tables ?? [page.table]).map((t) => {
+    const table = document.createElement('table');
+    table.className = `data ${t.cls ?? ''}`;
+    const row = (cells, tag) => {
+      const tr = document.createElement('tr');
+      cells.forEach((v, i) => {
+        const cell = document.createElement(tag);
+        cell.textContent = typeof v === 'number' ? num.format(v) : (v?.t ?? v);
+        cell.className = v?.c ?? ((t.text ?? [1]).includes(i) ? 'text' : '');
+        tr.append(cell);
+      });
+      return tr;
+    };
+    if (t.caption) table.createCaption().textContent = t.caption;
+    table.createTHead().append(row(t.head, 'th'));
+    table.createTBody().append(...t.rows.map((r) => row(r, 'td')));
+    return table;
+  });
+  root.querySelector('[data-table]').replaceChildren(...tables);
+}

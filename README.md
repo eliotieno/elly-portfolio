@@ -22,7 +22,7 @@ the Drive. Run it before every push that changes data.
 
 ## Layout
 
-    src/data/work.js      the six case studies and the shorter index entries
+    src/data/work.js      the case studies and the shorter index entries
     src/pages/work/       one .astro page per case study
     src/components/       the two maps and two dashboards
     src/lib/demo.js       shared map and chart helpers
