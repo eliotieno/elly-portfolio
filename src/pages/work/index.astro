@@ -1,11 +1,13 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Contours from '../../components/Contours.astro';
 import { work, more } from '../../data/work.js';
 ---
 
 <Base title="Work - Elly Otieno" description="Seven case studies and ten shorter projects in GIS, field data systems and dashboards.">
   <div class="wrap">
     <header class="head">
+      <Contours />
       <h1>Work</h1>
       <p class="lede">Seven case studies with something to try, then shorter notes on the rest.</p>
     </header>
@@ -46,14 +48,17 @@ import { work, more } from '../../data/work.js';
 
 <style>
   .head {
+    position: relative;
+    isolation: isolate;
     padding-block: clamp(2.5rem, 7vw, 6rem) clamp(2rem, 5vw, 4rem);
   }
 
   h1 {
     font-size: clamp(2.35rem, 6.6vw, 6.25rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 0.98;
-    letter-spacing: -0.035em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
   }
 
   .lede {
@@ -78,16 +83,17 @@ import { work, more } from '../../data/work.js';
   }
 
   .num {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 0.875rem;
     color: var(--accent);
   }
 
   h3 {
     font-size: clamp(1.35rem, 2.4vw, 2rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.08;
-    letter-spacing: -0.025em;
+    font-family: var(--display);
+    letter-spacing: -0.01em;
   }
 
   h3.small {

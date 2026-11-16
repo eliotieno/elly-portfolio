@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import Contours from '../components/Contours.astro';
+---
+
+<Base title="Page not found - Elly Otieno" description="That page is not on this site.">
+  <section class="wrap lost">
+    <Contours />
+    <p class="label">404, off the map sheet</p>
+    <h1>There is nothing at this address.</h1>
+    <p class="text">The page may have moved, or the link may be mistyped. The work is all still here.</p>
+    <p class="go">
+      <a href="/">Home</a>
+      <a href="/work/">All work</a>
+    </p>
+  </section>
+</Base>
+
+<style>
+  .lost {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 60svh;
+    display: grid;
+    align-content: center;
+    gap: 1.25rem;
+    padding-block: var(--section);
+  }
+
+  .label {
+    color: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(2.35rem, 6.6vw, 6rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    max-width: 14ch;
+    text-wrap: balance;
+  }
+
+  .text {
+    max-width: 44ch;
+    color: var(--muted);
+    font-size: 1.15rem;
+  }
+
+  .go {
+    display: flex;
+    gap: 1.5rem;
+  }
+</style>

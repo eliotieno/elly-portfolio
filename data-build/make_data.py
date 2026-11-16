@@ -5,17 +5,20 @@
 Nothing here reads real programme data. Farms are random points scattered around public
 town coordinates in western Kenya, all at least 25 km from any real programme farm (an
 earlier version used towns inside the programme area and checks/leak_check.py caught 69
-points within 50 m of real farms). The elevation surface is generated too.
+points within 50 m of real farms). Ground height is real: it is read from the public Terrarium
+elevation tiles (AWS Open Data), the same tiles the site's maps draw their hills from.
 The nursery method mirrors the real model: farm centroids as demand, any farm can host,
 Tobler hiking time over elevation difference, greedy minimum set cover, redundancy pruning.
 """
 from __future__ import annotations
 
 import json
+import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 OUT = Path(__file__).resolve().parent.parent / "public" / "data"
 rng = np.random.default_rng(2026)
@@ -44,9 +47,40 @@ def make_farms():
     return unit, lon, lat
 
 
-def elevation(x, y):
-    """Generated terrain in metres. Slopes reach roughly 10 percent."""
-    return 1300 + 120 * np.sin(x / 3100) + 90 * np.cos(y / 2300) + 40 * np.sin((x + y) / 900)
+DEM_ZOOM = 11  # about 76 m a pixel at the equator
+DEM_CACHE = Path(__file__).resolve().parent / ".cache"
+
+
+def dem_tile(tx, ty):
+    """One elevation tile as a 256 x 256 array of metres, downloaded once and kept in data-build/.cache."""
+    f = DEM_CACHE / f"{DEM_ZOOM}-{tx}-{ty}.png"
+    if not f.exists():
+        DEM_CACHE.mkdir(exist_ok=True)
+        urllib.request.urlretrieve(f"https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{DEM_ZOOM}/{tx}/{ty}.png", f)
+    rgb = np.asarray(Image.open(f).convert("RGB"), dtype=np.float64)
+    return rgb[..., 0] * 256 + rgb[..., 1] + rgb[..., 2] / 256 - 32768
+
+
+def elevation(lon, lat):
+    """Ground height in metres at each point, bilinear between the four nearest tile pixels."""
+    n = 2 ** DEM_ZOOM
+    px = (lon + 180) / 360 * n * 256 - 0.5
+    py = (1 - np.arcsinh(np.tan(np.radians(lat))) / np.pi) / 2 * n * 256 - 0.5
+    tiles = {}
+
+    def at(ix, iy):
+        key = (ix // 256, iy // 256)
+        if key not in tiles:
+            tiles[key] = dem_tile(*key)
+        return tiles[key][iy % 256, ix % 256]
+
+    out = np.empty(len(lon))
+    for i, (x, y) in enumerate(zip(px, py)):
+        x0, y0 = int(np.floor(x)), int(np.floor(y))
+        fx, fy = x - x0, y - y0
+        out[i] = ((at(x0, y0) * (1 - fx) + at(x0 + 1, y0) * fx) * (1 - fy)
+                  + (at(x0, y0 + 1) * (1 - fx) + at(x0 + 1, y0 + 1) * fx) * fy)
+    return out
 
 
 def walk_minutes(x, y, z):
@@ -80,7 +114,10 @@ def greedy_cover(reach):
 
 def nursery(unit, lon, lat):
     x, y = lon * MX, lat * MY
-    dist, minutes = walk_minutes(x, y, elevation(x, y))
+    z = elevation(lon, lat)
+    assert 1000 < z.min() and z.max() < 2300, "western Kenya sits between about 1,100 and 2,200 m"
+    print(f"  ground height {z.min():.0f} to {z.max():.0f} m")
+    dist, minutes = walk_minutes(x, y, z)
     scenarios = {}
     for limit in (30, 20, 10):
         reach = minutes <= limit
@@ -109,6 +146,7 @@ def nursery(unit, lon, lat):
         print(f"  {limit} min: {len(sites)} sites, avg {t.mean():.1f} min")
     return {
         "farms": [[round(float(a), 5), round(float(b), 5)] for a, b in zip(lon, lat)],
+        "z": [int(round(float(v))) for v in z],  # ground height in metres
         "unit": unit.tolist(),  # index into the KPI demo's units, so the map and the charts can filter each other
         "scenarios": scenarios,
     }

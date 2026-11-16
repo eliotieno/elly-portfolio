@@ -39,7 +39,7 @@ const reports = [
   <Workbench />
 
   <section class="wrap pbi" aria-labelledby="pbi-h">
-    <div class="pbi-head">
+    <div class="pbi-head rise">
       <p class="label">Power BI</p>
       <h2 id="pbi-h">Three Power BI reports you can open.</h2>
       <p class="lede">
@@ -50,7 +50,7 @@ const reports = [
     <ul class="reports">
       {
         reports.map((r) => (
-          <li>
+          <li class="rise">
             <a href={`/work/${r.slug}/`}>
               <span class="big">{r.stat[0]}</span>
               <span class="label">{r.stat[1]}</span>
@@ -69,7 +69,7 @@ const reports = [
     <ol class="work">
       {
         work.map((w, i) => (
-          <li>
+          <li class="rise">
             <span class="num">{String(i + 1).padStart(2, '0')}</span>
             <div class="title">
               <h3>
@@ -136,9 +136,10 @@ const reports = [
 
   .pbi-head h2 {
     font-size: clamp(2rem, 4.6vw, 4rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.035em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     max-width: 18ch;
   }
 
@@ -173,18 +174,28 @@ const reports = [
   }
 
   .reports .big {
+    transition: translate 0.35s var(--ease);
+  }
+
+  .reports a:hover .big {
+    translate: 0 -0.25rem;
+  }
+
+  .reports .big {
     font-size: clamp(2.5rem, 5vw, 4.5rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.04em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     color: var(--accent);
   }
 
   .reports h3 {
     margin-top: 1rem;
     font-size: clamp(1.4rem, 2.4vw, 2rem);
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    font-weight: 500;
+    font-family: var(--display);
+    letter-spacing: -0.01em;
   }
 
   .reports p {
@@ -215,7 +226,7 @@ const reports = [
   }
 
   .num {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 0.875rem;
     color: var(--accent);
   }
@@ -227,14 +238,30 @@ const reports = [
 
   h3 {
     font-size: clamp(1.6rem, 3.6vw, 3rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.02;
-    letter-spacing: -0.03em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
   h3 a {
+    display: inline-block;
     text-decoration: none;
+    transition: translate 0.35s var(--ease);
+  }
+
+  .work li:hover h3 a {
+    translate: 0.6rem 0;
+    color: var(--accent);
+  }
+
+  .work li {
+    transition: background 0.3s;
+  }
+
+  .work li:hover {
+    background: linear-gradient(to right, var(--panel), transparent);
   }
 
   .work p {
@@ -249,9 +276,10 @@ const reports = [
   .stat b {
     display: block;
     font-size: clamp(2rem, 4.5vw, 4rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.04em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
   }
 
   .all {
@@ -262,9 +290,10 @@ const reports = [
   .mail {
     display: inline-block;
     font-size: clamp(1.45rem, 5.4vw, 4.75rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.035em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     overflow-wrap: anywhere;
     text-decoration: none;
   }

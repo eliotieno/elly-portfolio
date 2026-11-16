@@ -113,9 +113,10 @@ const chapters = [
   h2,
   h3 {
     font-size: clamp(2rem, 4.4vw, 4.25rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 0.98;
-    letter-spacing: -0.03em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     max-width: 13ch;
     text-wrap: balance;
   }
@@ -246,7 +247,7 @@ const chapters = [
   }
 
   .model :global(.wb-svg text) {
-    font-family: var(--mono);
+    font-family: var(--sans);
   }
 
   @media (prefers-reduced-motion: reduce) {

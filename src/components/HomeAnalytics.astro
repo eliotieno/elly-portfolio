@@ -3,7 +3,7 @@ import data from '../../public/data/kpi.json';
 ---
 
 <section class="wrap analytics" id="analytics" data-analytics aria-labelledby="an-h">
-  <header class="head">
+  <header class="head rise">
     <p class="label">Analytics</p>
     <h2 id="an-h">The same farms, as a dashboard you can question.</h2>
     <p class="lede">
@@ -12,7 +12,7 @@ import data from '../../public/data/kpi.json';
     </p>
   </header>
 
-  <div class="frame">
+  <div class="frame ticks">
     <div class="bar">
       <div class="chips" role="group" aria-label="Region">
         <button type="button" data-region="" aria-pressed="true">All regions</button>
@@ -25,22 +25,26 @@ import data from '../../public/data/kpi.json';
     <div class="cards" data-cards></div>
 
     <div class="grid">
-      <figure class="wide-l">
-        <figcaption class="label">Farmers visited this season, by project unit. Click a bar.</figcaption>
-        <div data-chart="units"></div>
-      </figure>
-      <figure>
-        <figcaption class="label">Weekly field visits, NEST and ROOT forms</figcaption>
-        <div data-chart="weekly"></div>
-      </figure>
-      <figure>
-        <figcaption class="label">Contracts signed, cumulative</figcaption>
-        <div data-chart="signed"></div>
-      </figure>
-      <figure>
-        <figcaption class="label">Farmers by status</figcaption>
-        <div data-chart="status"></div>
-      </figure>
+      <div class="col">
+        <figure>
+          <figcaption class="label">Farmers visited this season, by project unit. Click a bar.</figcaption>
+          <div data-chart="units"></div>
+        </figure>
+        <figure>
+          <figcaption class="label">Farmers by status</figcaption>
+          <div data-chart="status"></div>
+        </figure>
+      </div>
+      <div class="col">
+        <figure>
+          <figcaption class="label">Weekly field visits, NEST and ROOT forms</figcaption>
+          <div data-chart="weekly"></div>
+        </figure>
+        <figure>
+          <figcaption class="label">Contracts signed, cumulative</figcaption>
+          <div data-chart="signed"></div>
+        </figure>
+      </div>
     </div>
     <noscript><p>The charts need JavaScript.</p></noscript>
     <p class="foot label">
@@ -64,9 +68,10 @@ import data from '../../public/data/kpi.json';
 
   h2 {
     font-size: clamp(2rem, 4.6vw, 4rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.035em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     max-width: 18ch;
     text-wrap: balance;
   }
@@ -99,7 +104,7 @@ import data from '../../public/data/kpi.json';
 
   .chips button,
   .clear {
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 0.8125rem;
     padding: 0.4rem 0.8rem;
     color: var(--ink);
@@ -135,8 +140,11 @@ import data from '../../public/data/kpi.json';
     margin-bottom: 0.6rem;
   }
 
-  .wide-l {
-    grid-row: span 2;
+  .col {
+    display: grid;
+    align-content: start;
+    gap: 2rem;
+    min-width: 0;
   }
 
   .foot {
@@ -160,10 +168,6 @@ import data from '../../public/data/kpi.json';
   @media (max-width: 860px) {
     .grid {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    .wide-l {
-      grid-row: auto;
     }
   }
 </style>

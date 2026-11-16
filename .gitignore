@@ -6,3 +6,4 @@ dist/
 *.log
 data-build/local_paths.json
 __pycache__/
+data-build/.cache/

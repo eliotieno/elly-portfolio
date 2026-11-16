@@ -1,0 +1,158 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* MapLibre's controls and pop-ups, redrawn to match the site. Every map on the site loads this file. */
+.maplibregl-map {
+  font-family: var(--sans);
+}
+
+.maplibregl-popup-content {
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.85rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(8px);
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--bg) !important;
+  border-bottom-color: var(--bg) !important;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--bg) !important;
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--bg) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--muted);
+  font-size: 1.1rem;
+  padding: 0 0.4rem;
+}
+
+.pop strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.pop dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.15rem 1.25rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pop dt {
+  color: var(--muted);
+}
+
+.pop dd {
+  margin: 0;
+  text-align: right;
+}
+
+.pop p {
+  margin-top: 0.5rem;
+  max-width: 30ch;
+  color: var(--muted);
+}
+
+.pop button {
+  margin-top: 0.7rem;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  border: 0;
+  cursor: pointer;
+}
+
+.maplibregl-ctrl-group {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none !important;
+  backdrop-filter: blur(8px);
+}
+
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--line);
+}
+
+.maplibregl-ctrl-group .maplibregl-ctrl-icon {
+  filter: invert(0.92) sepia(0.15);
+}
+
+.maplibregl-ctrl-scale {
+  background: none;
+  border-color: var(--ink);
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 4px var(--bg);
+}
+
+/* Position under the pointer, ground height and zoom. */
+.readout {
+  padding: 0.2rem 0.45rem;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--bg) 80%, transparent) !important;
+  color: var(--muted);
+  font-size: 0.625rem;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--ink);
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(0.9);
+}
+
+.maplibregl-cooperative-gesture-screen {
+  font-family: var(--sans);
+  font-size: 1rem;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+/* A row of small switches over a map: satellite, contours and the like. */
+.switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+}
+
+.switches label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}

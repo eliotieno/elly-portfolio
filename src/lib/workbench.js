@@ -15,7 +15,7 @@ const SX = 10, SY = 7, BASE = -0.42;
 
 // On the chalk slab (dark marks) and on the dark page (light marks).
 const ON = { ink: '#2b2d29', green: '#2f7d4f', amber: '#bf8320', red: '#b4473d', grey: '#7c7e78' };
-const UP = { ink: '#edece6', green: '#63c283', amber: '#e0b04a', red: '#e07a6e', muted: '#9a9a94' };
+const UP = { ink: '#f1ecde', green: '#8fd18a', amber: '#e3a657', red: '#e07a6e', muted: '#a3a497' };
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 const css = (c, a = 1) => `rgba(${c.map(Math.round).join(',')},${a})`;
 

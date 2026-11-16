@@ -1,9 +1,19 @@
 ---
-import '@fontsource-variable/schibsted-grotesk/wght.css';
-import '@fontsource/fragment-mono/latin-400.css';
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/libre-franklin/wght.css';
+import serif from '@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url';
+import sans from '@fontsource-variable/libre-franklin/files/libre-franklin-latin-wght-normal.woff2?url';
 import '../styles/tokens.css';
 
 const { title, description } = Astro.props;
+const path = Astro.url.pathname;
+const url = new URL(path, Astro.site);
+const card = new URL('/social-card.png', Astro.site);
+const nav = [
+  ['/work/', 'Work'],
+  ['/about/', 'About'],
+  ['/#contact', 'Contact'],
+];
 ---
 
 <!doctype html>
@@ -13,32 +23,57 @@ const { title, description } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={url} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
-    <meta name="theme-color" content="#0b0d0b" />
+    <meta property="og:url" content={url} />
+    <meta property="og:site_name" content="Elly Otieno" />
+    <meta property="og:image" content={card} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Elly Otieno, GIS and data analyst, Nairobi" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0c1311" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preload" href={serif} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={sans} as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="wrap top">
-      <a class="name" href="/"><img src="/brand/mark-on-dark.svg" alt="" width="28" height="28" />Elly Otieno</a>
+      <a class="name" href="/" aria-label="Elly Otieno, home">
+        <img src="/brand/mark-on-dark.svg" alt="" width="34" height="34" />
+        <span>Elly Otieno</span>
+      </a>
       <nav aria-label="Main">
-        <a href="/work/">Work</a>
-        <a href="/about/">About</a>
-        <a href="/#contact">Contact</a>
+        {nav.map(([href, text]) => <a href={href} aria-current={path.startsWith(href) ? 'page' : undefined}>{text}</a>)}
       </nav>
     </header>
     <main id="main">
       <slot />
     </main>
-    <footer class="wrap foot label">
-      <span>Nairobi, Kenya</span>
-      <span>Demos run on generated or public sample data</span>
-      <a href="https://github.com/eliotieno/elly-portfolio">Source code</a>
+    <footer class="wrap foot">
+      <a class="mark" href="/" aria-label="Elly Otieno, home">
+        <img src="/brand/logo-on-dark.svg" alt="Elly Otieno" width="190" height="42" loading="lazy" />
+      </a>
+      <p class="label">
+        Nairobi, Kenya<br />
+        1.2921° S, 36.8219° E<br />
+        <span data-clock></span>
+      </p>
+      <p class="label">
+        Demos run on generated<br />
+        or public sample data
+      </p>
+      <p class="label links">
+        <a href="mailto:eliotieno.ol@gmail.com">Email</a>
+        <a href="https://www.linkedin.com/in/ellyotieno/">LinkedIn</a>
+        <a href="https://github.com/eliotieno/elly-portfolio">Source code</a>
+      </p>
     </footer>
   </body>
 </html>
@@ -47,35 +82,101 @@ const { title, description } = Astro.props;
   .top {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     gap: 1rem;
-    padding-block: 1.5rem;
+    padding-block: 1.1rem;
   }
 
   .name {
     display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    align-self: center;
-    font-weight: 650;
+    gap: 0.7rem;
+    font-family: var(--display);
+    font-size: 1.3rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     text-decoration: none;
+  }
+
+  .name img {
+    transition: rotate 0.6s var(--ease);
+  }
+
+  .name:hover img {
+    rotate: 90deg;
   }
 
   nav {
     display: flex;
     gap: clamp(1rem, 3vw, 2.25rem);
+    font-size: 0.95rem;
+    font-weight: 500;
   }
 
   nav a {
+    position: relative;
+    padding-block: 0.3rem;
     text-decoration: none;
   }
 
+  /* An underline that draws in from the left on hover and stays for the current page. */
+  nav a::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: var(--accent);
+    scale: 0 1;
+    transform-origin: left;
+    transition: scale 0.3s var(--ease);
+  }
+
+  nav a:hover::after,
+  nav a[aria-current]::after {
+    scale: 1 1;
+  }
+
   .foot {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.5rem 2rem;
-    padding-block: 2rem;
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+    align-items: start;
+    padding-block: 3rem 3.5rem;
     border-top: 1px solid var(--line);
   }
+
+  .foot p {
+    line-height: 1.9;
+  }
+
+  .mark img {
+    display: block;
+    height: auto;
+  }
+
+  .links {
+    display: grid;
+    justify-items: start;
+  }
+
+  @media (max-width: 760px) {
+    .foot {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .mark {
+      grid-column: 1 / -1;
+    }
+  }
 </style>
+
+<script>
+  // The time in Nairobi, so a visitor can tell whether it is a sensible hour to write.
+  const clock = document.querySelector('[data-clock]');
+  if (clock) {
+    const fmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit' });
+    const tick = () => (clock.textContent = `${fmt.format(new Date())} local time`);
+    tick();
+    setInterval(tick, 30000);
+  }
+</script>

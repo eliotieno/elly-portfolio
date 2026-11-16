@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Contours from '../components/Contours.astro';
 
 const instances = [
   ['Fish cage siting', 'Lake Victoria, during my degree', 'Where do the cages go so they stop failing'],
@@ -19,6 +20,7 @@ const record = [
 <Base title="About - Elly Otieno" description="How a run of failed fish cages on Lake Victoria led to a career in GIS and data.">
   <div class="wrap">
     <header class="head">
+      <Contours />
       <h1>It started with fish cages that kept failing.</h1>
     </header>
 
@@ -89,14 +91,17 @@ const record = [
 
 <style>
   .head {
+    position: relative;
+    isolation: isolate;
     padding-block: clamp(2.5rem, 7vw, 6rem) clamp(1rem, 3vw, 2rem);
   }
 
   h1 {
     font-size: clamp(2.35rem, 6.6vw, 6.25rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 0.98;
-    letter-spacing: -0.035em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     max-width: 14ch;
     text-wrap: balance;
   }

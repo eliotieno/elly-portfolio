@@ -1,0 +1,490 @@
+---
+// The nursery model told as a story map: the map stays put while the text scrolls past, and each step changes
+// what the map shows. The last step hands over the controls.
+import '../styles/map.css';
+import data from '../../public/data/nursery.json';
+
+const limits = ['30', '20', '10'];
+const stats = (l) => data.scenarios[l].stats;
+const rows = limits.map((l) => ({ limit: l, ...stats(l) }));
+const n = data.farms.length.toLocaleString('en');
+
+// The step about rings needs one example site: the busiest in the 30-minute network. Count what a 2.5 km ring
+// (30 minutes on flat ground at about 5 km/h) gets right and wrong there, so the text can quote real numbers.
+const RING = 2500;
+const sc = data.scenarios['30'];
+const served = sc.sites.map(() => 0);
+sc.assign.forEach((s) => served[s]++);
+const site = served.indexOf(Math.max(...served));
+const centre = data.farms[sc.sites[site]];
+const MX = 111320 * Math.cos((0.4 * Math.PI) / 180), MY = 110540; // metres per degree, as in data-build/make_data.py
+const inRing = data.farms.map(([x, y]) => Math.hypot((x - centre[0]) * MX, (y - centre[1]) * MY) <= RING);
+const inside = inRing.filter(Boolean).length;
+const elsewhere = inRing.filter((v, i) => v && sc.assign[i] !== site).length;
+const beyond = inRing.filter((v, i) => !v && sc.assign[i] === site).length;
+
+const steps = [
+  {
+    k: 'The demand',
+    t: `${n} farms, and every one is a walk`,
+    p: 'Each dot is a generated farm in western Kenya, standing on real ground. On the real programme each one was a household that collects its seedlings on foot.',
+  },
+  {
+    k: 'The shortcut',
+    t: 'A ring says these farms are close',
+    p: `The usual method draws a ring round a nursery. This one is 2.5 km, about what a person covers in 30 minutes on flat ground. It holds ${inside} farms, and the ring treats them all the same.`,
+  },
+  {
+    k: 'The correction',
+    t: 'The hills disagree',
+    p: `Now the farms are coloured by modelled walking time, from distance and climb. ${elsewhere} of the ${inside} farms in the ring turn grey: the model found them a quicker walk to another nursery.${beyond ? ` ${beyond} farms outside the ring are served from here.` : ''}`,
+  },
+  {
+    k: 'Longest walk 30 minutes',
+    t: `${stats('30').sites} nurseries reach every farm`,
+    p: `A greedy set cover picks the fewest host farms that keep every farm inside the limit, then drops any site the others already cover. The average walk is ${stats('30').avgMin} minutes.`,
+  },
+  {
+    k: 'Longest walk 20 minutes',
+    t: `${stats('20').sites} nurseries`,
+    p: `Ten minutes off the limit costs ${stats('20').sites - stats('30').sites} more sites. Each now serves ${stats('20').farmsPerSite} farms on average, down from ${stats('30').farmsPerSite}.`,
+  },
+  {
+    k: 'Longest walk 10 minutes',
+    t: `${stats('10').sites} nurseries`,
+    p: `At ten minutes each nursery serves about ${Math.round(stats('10').farmsPerSite)} farms. This is the trade the programme had to see before it chose: every step in convenience is paid for in sites to staff and stock.`,
+  },
+  { k: 'Your turn', t: 'Now explore it', p: 'Change the limit, or lay a Sentinel-2 image under the network. Click any nursery or farm for its numbers.', controls: true },
+];
+---
+
+<section class="story" data-story data-site={site} data-centre={centre.join(',')} data-ring={RING} aria-labelledby="story-h">
+  <h2 class="label head" id="story-h">The model as a story map. Scroll.</h2>
+  <div class="stage">
+    <div class="map" data-map role="region" aria-label="Map of generated farms and nursery sites that follows the text">
+      <noscript><p class="demo-body">The map needs JavaScript. The table below holds the same results.</p></noscript>
+    </div>
+    <div class="legend" data-legend hidden>
+      <span class="label">Walk to nursery</span>
+      <span class="ramp" aria-hidden="true"></span>
+      <span class="ends label"><span>0 min</span><span data-limit-end>30 min</span></span>
+    </div>
+  </div>
+
+  <ol class="steps">
+    {
+      steps.map((s, i) => (
+        <li class="step" data-step>
+          <div class="card ticks">
+            <p class="label k">
+              <span>{s.k}</span>
+              <span>
+                {String(i + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}
+              </span>
+            </p>
+            <h3>{s.t}</h3>
+            <p>{s.p}</p>
+            {s.controls && (
+              <div class="controls">
+                <fieldset>
+                  <legend class="label">Longest walk</legend>
+                  {limits.map((l) => (
+                    <label>
+                      <input type="radio" name="story-limit" value={l} checked={l === '30'} /> {l} min
+                    </label>
+                  ))}
+                </fieldset>
+                <fieldset>
+                  <legend class="label">Ground</legend>
+                  <label>
+                    <input type="checkbox" data-imagery /> Sentinel-2 image
+                  </label>
+                  <label>
+                    <input type="checkbox" data-contours checked /> Contours
+                  </label>
+                </fieldset>
+              </div>
+            )}
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</section>
+
+<section class="demo" aria-labelledby="nets-h">
+  <div class="demo-head">
+    <h2 class="label" id="nets-h">The three networks on {n} generated farms</h2>
+  </div>
+  <div class="scroll">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Longest walk</th>
+          <th>Sites</th>
+          <th>Farms per site</th>
+          <th>Average walk</th>
+          <th>90th percentile</th>
+          <th>Average distance</th>
+          <th>Second site in range</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          rows.map((r) => (
+            <tr>
+              <td>{r.limit} min</td>
+              <td>{r.sites}</td>
+              <td>{r.farmsPerSite}</td>
+              <td>{r.avgMin} min</td>
+              <td>{r.p90Min} min</td>
+              <td>{r.avgMetres.toLocaleString('en')} m</td>
+              <td>{r.secondOptionPct}%</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+  <p class="demo-foot label">
+    Generated farms on real ground heights from public elevation tiles. Straight-line walks. No real farm locations.
+  </p>
+</section>
+
+<style>
+  /* The story bleeds to the edges of the page column. The stage sticks; the steps scroll over it. */
+  .story {
+    position: relative;
+    margin-inline: calc(-1 * var(--gutter));
+    border-block: 1px solid var(--line);
+  }
+
+  .head {
+    position: absolute;
+    z-index: 2;
+    top: 1rem;
+    right: var(--gutter);
+    padding: 0.3rem 0.55rem;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    border: 1px solid var(--line);
+  }
+
+  .stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: hidden;
+  }
+
+  .map {
+    height: 100%;
+    background: radial-gradient(ellipse at 60% 40%, #15201c, var(--bg));
+  }
+
+  .legend {
+    position: absolute;
+    right: var(--gutter);
+    bottom: 5.25rem;
+    display: grid;
+    gap: 0.3rem;
+    width: 11rem;
+    padding: 0.6rem 0.7rem;
+    background: color-mix(in srgb, var(--bg) 84%, transparent);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+
+  .legend[hidden] {
+    display: none;
+  }
+
+  .ramp {
+    height: 0.5rem;
+    background: linear-gradient(to right, var(--accent), #d9d77c, var(--warm));
+  }
+
+  .ends {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .steps {
+    position: relative;
+    margin-top: -100svh;
+    pointer-events: none;
+  }
+
+  .step {
+    display: grid;
+    align-items: center;
+    min-height: 100svh;
+    padding-inline: var(--gutter);
+  }
+
+  .card {
+    pointer-events: auto;
+    width: min(24rem, 100%);
+    padding: 1.2rem 1.35rem 1.35rem;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    opacity: 0.35;
+    transition: opacity 0.4s;
+  }
+
+  .step:global(.on) .card {
+    opacity: 1;
+  }
+
+  .k {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--accent);
+  }
+
+  h3 {
+    margin-top: 0.7rem;
+    font-size: clamp(1.6rem, 2.6vw, 2.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .card > p:not(.k) {
+    margin-top: 0.7rem;
+    color: color-mix(in srgb, var(--ink) 82%, var(--bg));
+    font-size: 0.975rem;
+    line-height: 1.5;
+  }
+
+  .card .controls {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    font-family: var(--sans);
+  }
+
+  fieldset {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1rem;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  legend {
+    width: 100%;
+    padding: 0 0 0.3rem;
+  }
+
+  .story + .demo {
+    margin-top: clamp(2rem, 5vw, 4rem);
+  }
+
+  @media (min-width: 761px) {
+    .story :global(.maplibregl-ctrl-bottom-left) {
+      left: auto;
+      right: 3.6rem;
+      bottom: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .story :global(.maplibregl-ctrl-bottom-right) {
+      bottom: 1.6rem;
+    }
+  }
+
+  /* Phones: the map keeps the top of the screen, each card sits at the bottom. */
+  @media (max-width: 760px) {
+    .step {
+      align-items: end;
+      padding-bottom: 1.25rem;
+    }
+
+    .card {
+      width: 100%;
+      padding: 1rem 1.1rem 1.1rem;
+    }
+
+    .legend {
+      top: 3.4rem;
+      bottom: auto;
+      left: var(--gutter);
+      right: auto;
+      width: 9rem;
+    }
+
+    .head {
+      left: var(--gutter);
+      right: auto;
+    }
+  }
+</style>
+
+<script>
+  import { ACCENT, BG, GREY, INK, MID, WARM, addImagery, addTerrain, boundsOf, furnish, loadMap, makeMap, num, onStep, popBody, showImagery, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-story]');
+  const $ = (s) => root.querySelector(s);
+  const fc = (features) => ({ type: 'FeatureCollection', features });
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wide = matchMedia('(min-width: 761px)').matches;
+  const SITE = (s) => `N-${String(s + 1).padStart(3, '0')}`;
+
+  whenVisible(root, async () => {
+    const [lib, data] = await Promise.all([loadMap(), fetch('/data/nursery.json').then((r) => r.json())]);
+    const { gl } = lib;
+    const focus = Number(root.dataset.site);
+    const centre = root.dataset.centre.split(',').map(Number);
+    const farmBounds = boundsOf(data.farms);
+    // The cards cover the left of the map on wide screens and the bottom of it on phones.
+    const pad = () => (wide ? { top: 60, bottom: 60, left: Math.min(460, innerWidth * 0.4), right: 60 } : { top: 50, bottom: Math.round(innerHeight * 0.45), left: 20, right: 20 });
+    const map = makeMap(lib, $('[data-map]'), farmBounds, { fitBoundsOptions: { padding: pad() }, pitch: wide ? 45 : 0 });
+    furnish(map, gl, wide ? 'bottom-right' : 'top-right');
+
+    // The ring: a circle of the given radius in metres round the example site.
+    const R = Number(root.dataset.ring), MX = 111320 * Math.cos((0.4 * Math.PI) / 180), MY = 110540;
+    const ring = fc([
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: Array.from({ length: 73 }, (_, k) => [centre[0] + (R * Math.cos((k * Math.PI) / 36)) / MX, centre[1] + (R * Math.sin((k * Math.PI) / 36)) / MY]) },
+      },
+    ]);
+
+    const built = {};
+    function build(l) {
+      const sc = data.scenarios[l];
+      const n = sc.sites.map(() => 0);
+      sc.assign.forEach((s) => n[s]++);
+      return (built[l] ??= {
+        hosts: sc.sites,
+        farms: fc(data.farms.map((c, i) => ({ type: 'Feature', properties: { i, s: sc.assign[i], min: sc.min[i], m: sc.m[i] }, geometry: { type: 'Point', coordinates: c } }))),
+        links: fc(data.farms.map((c, i) => ({ type: 'Feature', properties: { s: sc.assign[i] }, geometry: { type: 'LineString', coordinates: [c, data.farms[sc.sites[sc.assign[i]]]] } }))),
+        sites: fc(sc.sites.map((f, s) => ({ type: 'Feature', properties: { s, n: n[s], z: data.z[f] }, geometry: { type: 'Point', coordinates: data.farms[f] } }))),
+      });
+    }
+
+    let limit = '30';
+    let cur = build(limit);
+    let popup = null;
+    const ramp = (l) => ['interpolate', ['linear'], ['get', 'min'], 0, ACCENT, l * 0.55, MID, l, WARM];
+    const show = (id, on) => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+    const ms = (v) => (reduced ? 0 : v);
+
+    function setLimit(l) {
+      limit = l;
+      cur = build(l);
+      for (const k of ['farms', 'links', 'sites']) map.getSource(k).setData(cur[k]);
+      $('[data-limit-end]').textContent = `${l} min`;
+      const radio = $(`[name="story-limit"][value="${l}"]`);
+      if (radio) radio.checked = true;
+      popup?.remove();
+    }
+
+    // What the map shows at each step of the text.
+    function network(l) {
+      setLimit(l);
+      map.setPaintProperty('farms', 'circle-color', ramp(Number(l)));
+      map.setPaintProperty('farms', 'circle-opacity', 0.95);
+      for (const id of ['links', 'sites']) show(id, true);
+      for (const id of ['ring', 'links-hi']) show(id, false);
+      map.setFilter('sites', null);
+      $('[data-legend]').hidden = false;
+      map.fitBounds(farmBounds, { padding: pad(), pitch: wide ? 45 : 0, bearing: 0, duration: ms(1800) });
+    }
+    function oneSite(coloured) {
+      setLimit('30');
+      map.setPaintProperty('farms', 'circle-color', coloured ? ['case', ['==', ['get', 's'], focus], ramp(30), GREY] : INK);
+      map.setPaintProperty('farms', 'circle-opacity', coloured ? ['case', ['==', ['get', 's'], focus], 1, 0.55] : 0.85);
+      show('links', false);
+      show('links-hi', coloured);
+      show('ring', true);
+      show('sites', true);
+      map.setFilter('sites', ['==', ['get', 's'], focus]);
+      $('[data-legend]').hidden = !coloured;
+      // An offset, not padding: flyTo's padding stays on the map and would then be added to every later fitBounds.
+      const p = pad();
+      map.flyTo({ center: centre, zoom: wide ? 12.4 : 11.6, pitch: wide ? (coloured ? 58 : 30) : 0, bearing: coloured ? 28 : 0, offset: [(p.left - p.right) / 2, (p.top - p.bottom) / 2], duration: ms(2200), essential: true });
+    }
+    const scenes = [
+      () => {
+        setLimit('30');
+        map.setPaintProperty('farms', 'circle-color', INK);
+        map.setPaintProperty('farms', 'circle-opacity', 0.8);
+        for (const id of ['links', 'links-hi', 'sites', 'ring']) show(id, false);
+        $('[data-legend]').hidden = true;
+        map.fitBounds(farmBounds, { padding: pad(), pitch: wide ? 45 : 0, bearing: 0, duration: ms(1800) });
+      },
+      () => oneSite(false),
+      () => oneSite(true),
+      () => network('30'),
+      () => network('20'),
+      () => network('10'),
+      () => network(limit),
+    ];
+
+    map.on('load', async () => {
+      await addTerrain(map, gl, { relief: wide ? 1.6 : 0, contours: true });
+      addImagery(map);
+      for (const k of ['links', 'farms', 'sites']) map.addSource(k, { type: 'geojson', data: cur[k] });
+      map.addSource('ring', { type: 'geojson', data: ring });
+
+      map.addLayer({ id: 'links', type: 'line', source: 'links', layout: { visibility: 'none' }, paint: { 'line-color': INK, 'line-width': 0.6, 'line-opacity': 0.22 } });
+      map.addLayer({ id: 'links-hi', type: 'line', source: 'links', filter: ['==', ['get', 's'], focus], layout: { visibility: 'none' }, paint: { 'line-color': INK, 'line-width': 0.9, 'line-opacity': 0.5 } });
+      map.addLayer({ id: 'ring', type: 'line', source: 'ring', layout: { visibility: 'none' }, paint: { 'line-color': INK, 'line-width': 1.6, 'line-dasharray': [3, 2] } });
+      map.addLayer({
+        id: 'farms',
+        type: 'circle',
+        source: 'farms',
+        paint: { 'circle-color': INK, 'circle-opacity': 0.8, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 1.7, 11, 3.2, 14, 7], 'circle-stroke-color': BG, 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 10, 0, 12, 0.8] },
+      });
+      map.addLayer({
+        id: 'sites',
+        type: 'circle',
+        source: 'sites',
+        layout: { visibility: 'none' },
+        paint: { 'circle-color': BG, 'circle-stroke-color': INK, 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 7, 1.2, 10, 2], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 9, 4.2, 12, 8, 14, 11] },
+      });
+
+      map.on('click', (e) => {
+        const f = map.queryRenderedFeatures(e.point, { layers: ['sites', 'farms'].filter((id) => map.getLayoutProperty(id, 'visibility') !== 'none') })[0];
+        if (!f) return;
+        const p = f.properties;
+        const body =
+          f.layer.id === 'sites'
+            ? popBody(`Nursery ${SITE(p.s)}`, [
+                ['Farms served', num.format(p.n)],
+                ['Ground height', `${num.format(p.z)} m`],
+              ])
+            : popBody(`Farm F-${String(p.i + 1).padStart(4, '0')}`, [
+                ['Nursery', SITE(p.s)],
+                ['Walk', `${p.min.toFixed(1)} min`],
+                ['Distance', `${num.format(p.m)} m`],
+                ['Ground height', `${num.format(data.z[p.i])} m`],
+                ['Climb to nursery', `${data.z[cur.hosts[p.s]] - data.z[p.i]} m`],
+              ]);
+        popup?.remove();
+        popup = new gl.Popup({ maxWidth: '20rem', offset: 12, focusAfterOpen: false }).setLngLat(f.geometry.coordinates).setDOMContent(body).addTo(map);
+      });
+      for (const id of ['farms', 'sites']) {
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'));
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = ''));
+      }
+
+      root.addEventListener('change', (e) => {
+        if (e.target.name === 'story-limit') network(e.target.value);
+        if (e.target.matches('[data-imagery]')) showImagery(map, e.target.checked);
+        if (e.target.matches('[data-contours]')) for (const id of ['contour-lines', 'contour-labels']) show(id, e.target.checked);
+      });
+
+      onStep(root, (i) => scenes[i]());
+    });
+  });
+</script>

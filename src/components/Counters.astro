@@ -11,7 +11,7 @@ const figures = [
 <section class="wrap counters" data-counters aria-label="Results from the work">
   {
     figures.map(([n, suffix, label]) => (
-      <div>
+      <div class="rise">
         <b data-to={n} data-suffix={suffix}>
           {n.toLocaleString('en')}
           {suffix}
@@ -34,9 +34,10 @@ const figures = [
   b {
     display: block;
     font-size: clamp(2.25rem, 5vw, 4.5rem);
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1;
-    letter-spacing: -0.04em;
+    font-family: var(--display);
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
 

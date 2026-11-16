@@ -1,0 +1,49 @@
+---
+// Decoration for page heads: the contour rings from the logo, drawn large and faint. Built at build time, so it
+// ships as plain SVG with no script. Same formula as data-build/make_brand.py.
+const rings = Array.from({ length: 11 }, (_, k) => {
+  const r = 26 + 34 * k;
+  const pts = Array.from({ length: 120 }, (_, i) => {
+    const t = (2 * Math.PI * i) / 120;
+    const w = 1 + 0.085 * Math.cos(2 * t + 0.7 + 0.35 * (k % 4)) + 0.05 * Math.cos(3 * t + 2.1 - 0.5 * (k % 4));
+    return `${(590 + r * w * Math.cos(t)).toFixed(1)} ${(250 + r * w * Math.sin(t)).toFixed(1)}`;
+  });
+  return `M${pts.join('L')}Z`;
+});
+---
+
+<svg class="contours" viewBox="0 0 800 500" aria-hidden="true" focusable="false">
+  {rings.map((d, k) => <path d={d} class={k % 5 === 4 ? 'index' : ''} />)}
+  <circle cx="590" cy="250" r="4" />
+</svg>
+
+<style>
+  .contours {
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    /* Flush with the page edge. The rings run off the right of the drawing itself, so nothing overflows the page. */
+    right: calc(-1 * var(--gutter));
+    width: min(60rem, 95vw);
+    translate: 0 -50%;
+    pointer-events: none;
+    /* Fade toward the text on the left and at the top and bottom edges. */
+    mask-image: radial-gradient(ellipse at 74% 50%, #000 15%, transparent 70%);
+  }
+
+  path {
+    fill: none;
+    stroke: var(--ink);
+    stroke-opacity: 0.1;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  path.index {
+    stroke-opacity: 0.2;
+  }
+
+  circle {
+    fill: var(--accent);
+  }
+</style>

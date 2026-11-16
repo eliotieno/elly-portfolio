@@ -1,5 +1,5 @@
 ---
-import 'maplibre-gl/dist/maplibre-gl.css';
+import '../styles/map.css';
 import data from '../../public/data/qa.geojson?raw';
 
 const rows = JSON.parse(data).features.map((f) => f.properties);
@@ -14,6 +14,11 @@ const fault = (s) => s.replaceAll('_', ' ');
       <li><i class="b"></i> Queue B, review</li>
       <li><i class="c"></i> Queue C, fix</li>
     </ul>
+  </div>
+  <div class="tour">
+    <button type="button" class="label" data-prev aria-label="Previous polygon">Previous</button>
+    <p data-note aria-live="polite">Step through the polygons, or click one on the map or in the table.</p>
+    <button type="button" class="label" data-next aria-label="Next polygon">Next</button>
   </div>
   <div class="map" data-map>
     <noscript><p class="demo-body">The map needs JavaScript. The table below holds the same results.</p></noscript>
@@ -30,9 +35,13 @@ const fault = (s) => s.replaceAll('_', ' ');
       </thead>
       <tbody>
         {
-          rows.map((r) => (
-            <tr>
-              <td>{r.fg_id}</td>
+          rows.map((r, i) => (
+            <tr data-row={i}>
+              <td>
+                <button type="button" data-go={i}>
+                  {r.fg_id}
+                </button>
+              </td>
               <td class="text">{fault(r.fault)}</td>
               <td class="text">{r.flags ? r.flags.replaceAll(';', ', ') : 'none'}</td>
               <td>{r.suggested_queue}</td>
@@ -43,8 +52,7 @@ const fault = (s) => s.replaceAll('_', ' ');
     </table>
   </div>
   <p class="demo-foot label">
-    {rows.length} generated polygons, each built to trip one check or none. Click a polygon for the engine's note. No real
-    farms.
+    {rows.length} generated polygons, each built to trip one check or none. No real farms.
   </p>
 </section>
 
@@ -62,42 +70,131 @@ const fault = (s) => s.replaceAll('_', ' ');
   }
 
   .key .b {
-    background: #8a8c88;
+    background: #8f958c;
   }
 
   .key .c {
-    background: var(--ink);
+    background: var(--warm);
+  }
+
+  /* One polygon at a time: its fault, the flags it raised and the engine's note. */
+  .tour {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .tour p {
+    min-height: 2.9em;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .tour button {
+    padding: 0.45rem 0.8rem;
+    background: none;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+
+  .tour button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  td button {
+    padding: 0;
+    font: inherit;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--accent);
+    cursor: pointer;
+  }
+
+  td button:hover {
+    color: var(--accent);
+  }
+
+  tr:global(.on) td {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+
+  @media (max-width: 640px) {
+    .tour {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .tour p {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
   }
 </style>
 
 <script>
-  import { ACCENT, GREY, INK, boundsOf, loadMap, makeMap, whenVisible } from '../lib/demo.js';
+  import { ACCENT, GREY, INK, WARM, boundsOf, furnish, loadMap, makeMap, popBody, whenVisible } from '../lib/demo.js';
 
   const root = document.querySelector('[data-qa]');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   whenVisible(root, async () => {
-    const [gl, data] = await Promise.all([loadMap(), fetch('/data/qa.geojson').then((r) => r.json())]);
+    const [lib, data] = await Promise.all([loadMap(), fetch('/data/qa.geojson').then((r) => r.json())]);
+    const { gl } = lib;
+    data.features.forEach((f, i) => (f.id = i));
     const all = data.features.flatMap((f) => f.geometry.coordinates[0]);
-    const map = makeMap(gl, root.querySelector('[data-map]'), boundsOf(all));
+    const map = makeMap(lib, root.querySelector('[data-map]'), boundsOf(all));
+    furnish(map, gl);
+    let at = -1;
+    let popup = null;
+
+    // Show one polygon: fly to it, outline it, mark its table row and put the engine's note above the map.
+    function go(i, fly = true) {
+      at = (i + data.features.length) % data.features.length;
+      const f = data.features[at];
+      const p = f.properties;
+      map.setFilter('qa-on', ['==', ['id'], at]);
+      root.querySelectorAll('[data-row]').forEach((tr) => tr.classList.toggle('on', Number(tr.dataset.row) === at));
+      root.querySelector('[data-note]').textContent = `${p.fg_id}, queue ${p.suggested_queue}. ${p.flag_notes || 'No flags raised.'}`;
+      popup?.remove();
+      popup = new gl.Popup({ maxWidth: '19rem', offset: 14, focusAfterOpen: false })
+        .setLngLat(f.geometry.coordinates[0].reduce((a, c) => (c[1] > a[1] ? c : a)))
+        .setDOMContent(
+          popBody(`Polygon ${p.fg_id}`, [
+            ['Fault planted', String(p.fault).replaceAll('_', ' ')],
+            ['Flags raised', p.flags ? String(p.flags).replaceAll(';', ', ') : 'none'],
+            ['Area', `${p.area_ha} ha`],
+            ['Queue', p.suggested_queue],
+          ]),
+        )
+        .addTo(map);
+      if (fly) map.fitBounds(boundsOf(f.geometry.coordinates[0]), { padding: 110, maxZoom: 17, duration: reduced ? 0 : 1100 });
+    }
 
     map.on('load', () => {
       map.addSource('qa', { type: 'geojson', data });
-      const colour = ['match', ['get', 'suggested_queue'], 'A', ACCENT, 'B', GREY, INK];
-      map.addLayer({ id: 'qa-fill', type: 'fill', source: 'qa', paint: { 'fill-color': colour, 'fill-opacity': 0.55 } });
+      const colour = ['match', ['get', 'suggested_queue'], 'A', ACCENT, 'B', GREY, WARM];
+      map.addLayer({ id: 'qa-fill', type: 'fill', source: 'qa', paint: { 'fill-color': colour, 'fill-opacity': 0.5 } });
       map.addLayer({ id: 'qa-line', type: 'line', source: 'qa', paint: { 'line-color': colour, 'line-width': 1.5 } });
+      map.addLayer({ id: 'qa-on', type: 'line', source: 'qa', filter: ['==', ['id'], -1], paint: { 'line-color': INK, 'line-width': 2.5 } });
+      // Every corner as a dot once zoomed in, the way an editor shows vertices. A spike or a stray point is then plain to see.
+      map.addLayer({ id: 'qa-vertex', type: 'circle', source: 'qa', minzoom: 14, paint: { 'circle-radius': 2.6, 'circle-color': INK, 'circle-stroke-color': '#0c1311', 'circle-stroke-width': 1 } });
 
-      map.on('click', 'qa-fill', (e) => {
-        const p = e.features[0].properties;
-        const box = document.createElement('div');
-        const head = document.createElement('strong');
-        head.textContent = `${p.fg_id}, queue ${p.suggested_queue}`;
-        const note = document.createElement('p');
-        note.textContent = p.flag_notes || 'No flags raised.';
-        box.append(head, note);
-        new gl.Popup({ maxWidth: '18rem' }).setLngLat(e.lngLat).setDOMContent(box).addTo(map);
-      });
+      map.on('click', 'qa-fill', (e) => go(e.features[0].id, false));
       map.on('mouseenter', 'qa-fill', () => (map.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', 'qa-fill', () => (map.getCanvas().style.cursor = ''));
+      root.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-go], [data-prev], [data-next]');
+        if (!b) return;
+        go(b.dataset.go !== undefined ? Number(b.dataset.go) : at + (b.matches('[data-next]') ? 1 : at < 0 ? 0 : -1));
+        if (b.dataset.go !== undefined) root.querySelector('[data-map]').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+      });
     });
   });
 </script>
