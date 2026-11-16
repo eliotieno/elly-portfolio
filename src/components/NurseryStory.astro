@@ -184,7 +184,7 @@ const steps = [
   .legend {
     position: absolute;
     right: var(--gutter);
-    bottom: 5.25rem;
+    bottom: 5.5rem;
     display: grid;
     gap: 0.3rem;
     width: 11rem;
@@ -285,19 +285,14 @@ const steps = [
     margin-top: clamp(2rem, 5vw, 4rem);
   }
 
-  @media (min-width: 761px) {
-    .story :global(.maplibregl-ctrl-bottom-left) {
-      left: auto;
-      right: 3.6rem;
-      bottom: 0.25rem;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
+  /* Zoom buttons sit under the "story map" label. The bottom right corner is left to the legend. */
+  .story :global(.maplibregl-ctrl-top-right) {
+    top: 3rem;
+    right: calc(var(--gutter) - 10px);
+  }
 
-    .story :global(.maplibregl-ctrl-bottom-right) {
-      bottom: 1.6rem;
-    }
+  .story :global(.maplibregl-ctrl-bottom-right) {
+    bottom: 2.9rem;
   }
 
   /* Phones: the map keeps the top of the screen, each card sits at the bottom. */
@@ -318,6 +313,10 @@ const steps = [
       left: var(--gutter);
       right: auto;
       width: 9rem;
+    }
+
+    .story :global(.maplibregl-ctrl-bottom-left) {
+      display: none;
     }
 
     .head {
@@ -346,7 +345,7 @@ const steps = [
     // The cards cover the left of the map on wide screens and the bottom of it on phones.
     const pad = () => (wide ? { top: 60, bottom: 60, left: Math.min(460, innerWidth * 0.4), right: 60 } : { top: 50, bottom: Math.round(innerHeight * 0.45), left: 20, right: 20 });
     const map = makeMap(lib, $('[data-map]'), farmBounds, { fitBoundsOptions: { padding: pad() }, pitch: wide ? 45 : 0 });
-    furnish(map, gl, wide ? 'bottom-right' : 'top-right');
+    furnish(map, gl);
 
     // The ring: a circle of the given radius in metres round the example site.
     const R = Number(root.dataset.ring), MX = 111320 * Math.cos((0.4 * Math.PI) / 180), MY = 110540;
