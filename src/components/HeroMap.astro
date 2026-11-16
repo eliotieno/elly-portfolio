@@ -643,9 +643,12 @@ import '../styles/map.css';
             return x > textRight + 24 && x + 290 < box.width - 60 && y > 120 && y < box.height - 120 && clearOfPanel;
           });
         }
-        const busiest = (open.length ? open : cur.sites.features).reduce((a, b) => (b.properties.n > a.properties.n ? b : a));
-        openSite(busiest.properties.s, wide && open.length ? 'left' : undefined);
-        highlight('s', busiest.properties.s);
+        // On a wide but cramped screen there may be no clear site; then open nothing sooner than cover the headline.
+        if (!wide || open.length) {
+          const busiest = (open.length ? open : cur.sites.features).reduce((a, b) => (b.properties.n > a.properties.n ? b : a));
+          openSite(busiest.properties.s, wide ? 'left' : undefined);
+          highlight('s', busiest.properties.s);
+        }
         if (wide && !reduced) map.easeTo({ bearing: -18, duration: 24000, easing: (t) => t });
       });
     });
