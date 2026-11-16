@@ -1,10 +1,12 @@
 // Shared by the map and chart demos.
 
-export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
-// The basemap is always light, so map layers use the light-mode tokens directly.
-export const INK = '#121412';
-export const ACCENT = '#1c6b3c';
+export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/dark';
+// The site and the basemap are both dark, so map layers use the dark tokens directly.
+export const INK = '#edece6';
+export const ACCENT = '#63c283';
 export const GREY = '#8a8c88';
+export const WARM = '#e0b04a';
+export const BG = '#0b0d0b';
 
 export const num = new Intl.NumberFormat('en');
 export const pct = (n) => `${(n * 100).toFixed(1)}%`;

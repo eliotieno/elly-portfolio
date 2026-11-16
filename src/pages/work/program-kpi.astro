@@ -1,5 +1,6 @@
 ---
 import CaseStudy from '../../layouts/CaseStudy.astro';
+import PowerBIEmbed from '../../components/PowerBIEmbed.astro';
 import KpiDashboard from '../../components/KpiDashboard.astro';
 
 const pages = [
@@ -24,7 +25,9 @@ const pages = [
     ['Tools', 'Power BI Desktop, Power Query, DAX'],
     ['Source', 'Salesforce, read directly, plus one SharePoint sheet'],
   ]}
->
+>  <PowerBIEmbed slug="program-kpi" title="Program KPI" />
+
+
   <section class="split">
     <h2 class="label">Problem</h2>
     <div class="prose">

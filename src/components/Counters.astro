@@ -1,0 +1,82 @@
+---
+// Real figures from the work, not the demo data.
+const figures = [
+  [18055, '', 'farms in the nursery placement model, all within a 30-minute walk of a site'],
+  [17436, '', 'farm polygons put through geometry and topology checks'],
+  [200, '+', 'people a month using the Power BI dashboards I built'],
+  [50, '%', 'fewer data collection errors after the field form redesign'],
+];
+---
+
+<section class="wrap counters" data-counters aria-label="Results from the work">
+  {
+    figures.map(([n, suffix, label]) => (
+      <div>
+        <b data-to={n} data-suffix={suffix}>
+          {n.toLocaleString('en')}
+          {suffix}
+        </b>
+        <span>{label}</span>
+      </div>
+    ))
+  }
+</section>
+
+<style>
+  .counters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2rem clamp(1rem, 3vw, 3rem);
+    padding-block: clamp(2.5rem, 6vw, 5rem);
+    border-bottom: 1px solid var(--line);
+  }
+
+  b {
+    display: block;
+    font-size: clamp(2.25rem, 5vw, 4.5rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  span {
+    display: block;
+    margin-top: 0.75rem;
+    max-width: 26ch;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  @media (max-width: 760px) {
+    .counters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<script>
+  // Count up once, the first time the strip scrolls into view. The final numbers are already in the HTML.
+  const root = document.querySelector('[data-counters]');
+  if (root && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const nums = [...root.querySelectorAll('b[data-to]')];
+    const fmt = new Intl.NumberFormat('en');
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        const start = performance.now();
+        const tick = (now) => {
+          const t = Math.min(1, (now - start) / 1400);
+          const ease = 1 - (1 - t) ** 3;
+          for (const b of nums) b.textContent = fmt.format(Math.round(Number(b.dataset.to) * ease)) + b.dataset.suffix;
+          if (t < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(root);
+  }
+</script>

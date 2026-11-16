@@ -12,11 +12,12 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    # Map tiles come from OpenFreeMap; MapLibre runs its worker from a blob.
+    # Map tiles come from OpenFreeMap, elevation tiles from AWS Open Data; MapLibre runs its worker from a blob.
+    # frame-src is for Power BI Publish to web reports, loaded only when a visitor clicks.
     # font-src data: is for a small font subset the bundler inlines.
     # The sha256 hash allows the inline script of the badge Netlify adds to free-plan sites; if Netlify
     # changes that script the badge stops rendering and the console shows the new hash.
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'sha256-BkKP2XO6WOEc3kXOiLr2ZoY83hamalKjPY9xBcbXVuw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self' blob:; child-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'sha256-BkKP2XO6WOEc3kXOiLr2ZoY83hamalKjPY9xBcbXVuw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://tiles.openfreemap.org https://s3.amazonaws.com; frame-src https://app.powerbi.com; worker-src 'self' blob:; child-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
 
 [[headers]]
   for = "/_astro/*"

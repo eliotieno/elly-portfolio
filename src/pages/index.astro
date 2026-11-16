@@ -1,56 +1,65 @@
 ---
 import Base from '../layouts/Base.astro';
-
+import HeroMap from '../components/HeroMap.astro';
+import Counters from '../components/Counters.astro';
+import HomeAnalytics from '../components/HomeAnalytics.astro';
 import { work } from '../data/work.js';
+import { embeds } from '../data/embeds.js';
 
-// Hero figure: generated farms joined to their nearest site. Seeded so every build draws the same picture.
-function mulberry32(seed) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const rand = mulberry32(2026);
-const gauss = () => (rand() + rand() + rand() + rand() - 2) / 2; // roughly -1..1, centre-heavy
-const W = 640;
-const H = 400;
-const sites = [
-  [110, 110], [300, 80], [520, 120], [170, 290], [380, 250], [560, 310],
-].map(([x, y]) => [x + gauss() * 20, y + gauss() * 20]);
-const farms = Array.from({ length: 170 }, () => {
-  const [sx, sy] = sites[Math.floor(rand() * sites.length)];
-  const x = Math.min(W - 8, Math.max(8, sx + gauss() * 105));
-  const y = Math.min(H - 8, Math.max(8, sy + gauss() * 85));
-  const nearest = sites.reduce((a, b) => (Math.hypot(b[0] - x, b[1] - y) < Math.hypot(a[0] - x, a[1] - y) ? b : a));
-  return { x, y, nearest };
-});
-const r1 = (n) => n.toFixed(1);
+const reports = [
+  {
+    slug: 'program-kpi',
+    title: 'Program KPI',
+    text: 'Field visits, outplanting, contracts and farmer status for 35 project units. In production it reads Salesforce directly.',
+    stat: ['345', 'measures'],
+  },
+  {
+    slug: 'nursery-stock',
+    title: 'Nursery stock',
+    text: 'A weekly nursery log turned into nine pages that show which counts are fresh, which were copied forward and which are missing.',
+    stat: ['9', 'pages'],
+  },
+  {
+    slug: 'retail-analytics',
+    title: 'Retail analytics',
+    text: 'Six pages on the public Superstore sample. Every number is defined once, as a named measure.',
+    stat: ['22', 'measures'],
+  },
+];
 ---
 
 <Base
   title="Elly Otieno - GIS and data analyst"
-  description="GIS and data analyst in Nairobi. Field data systems, spatial models and dashboards for agroforestry and carbon programmes."
+  description="GIS and data analyst in Nairobi. Interactive maps, spatial models, Power BI dashboards and field data systems for agroforestry and carbon programmes."
 >
-  <section class="wrap hero">
-    <h1>
-      I work out <em>where a thing should go</em> using data that already exists, then check it against the ground.
-    </h1>
-    <div class="hero-row">
-      <figure>
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Generated farm points, each joined by a line to its nearest nursery site">
-          {farms.map((f) => <line x1={r1(f.x)} y1={r1(f.y)} x2={r1(f.nearest[0])} y2={r1(f.nearest[1])} />)}
-          {farms.map((f) => <circle class="farm" cx={r1(f.x)} cy={r1(f.y)} r="2.2" />)}
-          {sites.map(([x, y]) => <circle class="site" cx={r1(x)} cy={r1(y)} r="7" />)}
-        </svg>
-        <figcaption class="label">170 generated farms, each assigned to its nearest of six sites. No real locations.</figcaption>
-      </figure>
-      <p class="intro">
-        GIS and data analyst in Nairobi. I build field data systems, spatial models and dashboards for agroforestry and
-        carbon programmes.
+  <HeroMap />
+  <Counters />
+  <HomeAnalytics />
+
+  <section class="wrap pbi" aria-labelledby="pbi-h">
+    <div class="pbi-head">
+      <p class="label">Power BI</p>
+      <h2 id="pbi-h">Three Power BI reports you can open.</h2>
+      <p class="lede">
+        Two ran a live programme and one is a practice build on public data. The programme reports are rebuilt here on
+        generated data, with the same pages and the same counting rules.
       </p>
     </div>
+    <ul class="reports">
+      {
+        reports.map((r) => (
+          <li>
+            <a href={`/work/${r.slug}/`}>
+              <span class="big">{r.stat[0]}</span>
+              <span class="label">{r.stat[1]}</span>
+              <h3>{r.title}</h3>
+              <p>{r.text}</p>
+              <span class="go label">{embeds[r.slug] ? 'Open the live Power BI report' : 'Open the interactive version'}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
   </section>
 
   <section class="wrap" id="work" aria-labelledby="work-h">
@@ -60,11 +69,17 @@ const r1 = (n) => n.toFixed(1);
         work.map((w, i) => (
           <li>
             <span class="num">{String(i + 1).padStart(2, '0')}</span>
-            <h3>
-              <a href={`/work/${w.slug}/`}>{w.title}</a>
-            </h3>
-            <p>{w.text}</p>
-            <span class="label">{w.meta}</span>
+            <div class="title">
+              <h3>
+                <a href={`/work/${w.slug}/`}>{w.title}</a>
+              </h3>
+              <p>{w.text}</p>
+              <span class="label">{w.meta}</span>
+            </div>
+            <div class="stat">
+              <b>{w.stat[0]}</b>
+              <span class="label">{w.stat[1]}</span>
+            </div>
           </li>
         ))
       }
@@ -107,63 +122,80 @@ const r1 = (n) => n.toFixed(1);
 </Base>
 
 <style>
-  .hero {
-    padding-block: clamp(2.5rem, 7vw, 6rem) var(--section);
+  .pbi {
+    padding-block: clamp(2rem, 5vw, 4rem) var(--section);
   }
 
-  h1 {
-    font-size: clamp(2.35rem, 6.6vw, 6.25rem);
-    font-weight: 600;
-    line-height: 0.98;
-    letter-spacing: -0.035em;
-    max-width: 17ch;
-    text-wrap: balance;
-  }
-
-  h1 em {
-    font-style: normal;
-    color: var(--accent);
-  }
-
-  .hero-row {
+  .pbi-head {
     display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    gap: clamp(1.5rem, 5vw, 5rem);
-    align-items: end;
-    margin-top: clamp(2.5rem, 6vw, 5rem);
+    gap: 1rem;
+    margin-bottom: clamp(1.5rem, 4vw, 3rem);
   }
 
-  svg {
-    display: block;
-    width: 100%;
-    height: auto;
+  .pbi-head h2 {
+    font-size: clamp(2rem, 4.6vw, 4rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    max-width: 18ch;
+  }
+
+  .lede {
+    max-width: 52ch;
+    color: var(--muted);
+    font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  }
+
+  .reports {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
     border: 1px solid var(--line);
   }
 
-  line {
-    stroke: var(--line);
-    stroke-width: 1;
+  .reports a {
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    height: 100%;
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+    background: var(--bg);
+    text-decoration: none;
+    transition: background 0.2s;
   }
 
-  .farm {
-    fill: var(--muted);
+  .reports a:hover {
+    background: var(--panel);
+    color: inherit;
   }
 
-  .site {
-    fill: var(--accent);
-    stroke: var(--bg);
-    stroke-width: 3;
+  .reports .big {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--accent);
   }
 
-  figcaption {
-    margin-top: 0.75rem;
+  .reports h3 {
+    margin-top: 1rem;
+    font-size: clamp(1.4rem, 2.4vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
-  .intro {
-    font-size: clamp(1.25rem, 2.1vw, 1.75rem);
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-    max-width: 24ch;
+  .reports p {
+    color: var(--muted);
+  }
+
+  .reports .go {
+    margin-top: 1rem;
+    color: var(--ink);
+  }
+
+  .reports a:hover .go {
+    color: var(--accent);
   }
 
   .work {
@@ -173,9 +205,8 @@ const r1 = (n) => n.toFixed(1);
 
   .work li {
     display: grid;
-    grid-template-columns: 4rem minmax(0, 6fr) minmax(0, 5fr);
+    grid-template-columns: 4rem minmax(0, 7fr) minmax(0, 4fr);
     column-gap: clamp(1rem, 3vw, 3rem);
-    row-gap: 0.5rem;
     align-items: baseline;
     padding-block: clamp(1.5rem, 3.5vw, 3rem);
     border-top: 1px solid var(--line);
@@ -187,8 +218,13 @@ const r1 = (n) => n.toFixed(1);
     color: var(--accent);
   }
 
+  .title {
+    display: grid;
+    gap: 0.6rem;
+  }
+
   h3 {
-    font-size: clamp(1.6rem, 3.8vw, 3.25rem);
+    font-size: clamp(1.6rem, 3.6vw, 3rem);
     font-weight: 600;
     line-height: 1.02;
     letter-spacing: -0.03em;
@@ -199,19 +235,27 @@ const r1 = (n) => n.toFixed(1);
     text-decoration: none;
   }
 
-  .all {
-    margin-top: 1.5rem;
-  }
-
   .work p {
-    max-width: 44ch;
+    max-width: 48ch;
     color: var(--muted);
   }
 
-  .work .label {
-    grid-column: 3;
+  .stat {
+    text-align: right;
   }
 
+  .stat b {
+    display: block;
+    font-size: clamp(2rem, 4.5vw, 4rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .all {
+    margin-top: 1.5rem;
+    padding-bottom: var(--section);
+  }
 
   .mail {
     display: inline-block;
@@ -233,18 +277,21 @@ const r1 = (n) => n.toFixed(1);
     padding-top: 0;
   }
 
-  @media (max-width: 760px) {
-    .hero-row {
+  @media (max-width: 860px) {
+    .reports {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
 
+  @media (max-width: 760px) {
     .work li {
       grid-template-columns: 2.5rem minmax(0, 1fr);
+      row-gap: 1rem;
     }
 
-    .work p,
-    .work .label {
+    .stat {
       grid-column: 2;
+      text-align: left;
     }
   }
 </style>

@@ -1,0 +1,724 @@
+---
+import 'maplibre-gl/dist/maplibre-gl.css';
+---
+
+<section class="hero" data-hero aria-labelledby="hero-h">
+  <div class="map" data-map role="region" aria-label="Interactive map of generated farms and nursery sites"></div>
+  <div class="shade" aria-hidden="true"></div>
+
+  <div class="panel" data-panel>
+    <fieldset class="seg" data-layer-pick>
+      <legend class="label">Layer</legend>
+      <label><input type="radio" name="hero-layer" value="nursery" checked /> Nursery network</label>
+      <label><input type="radio" name="hero-layer" value="qa" /> Polygon QA</label>
+    </fieldset>
+    <fieldset class="seg" data-limit-pick>
+      <legend class="label">Longest walk</legend>
+      <label><input type="radio" name="hero-limit" value="30" checked /> 30 min</label>
+      <label><input type="radio" name="hero-limit" value="20" /> 20</label>
+      <label><input type="radio" name="hero-limit" value="10" /> 10</label>
+    </fieldset>
+    <div class="legend" data-legend-nursery>
+      <span class="label">Walk to nursery</span>
+      <span class="ramp" aria-hidden="true"></span>
+      <span class="ends label"><span>0 min</span><span data-limit-end>30 min</span></span>
+    </div>
+    <ul class="legend qa" data-legend-qa hidden>
+      <li><i class="a"></i> A, quick confirm</li>
+      <li><i class="b"></i> B, review</li>
+      <li><i class="c"></i> C, fix</li>
+    </ul>
+    <p class="stat label" data-stat aria-live="polite"></p>
+    <button type="button" class="reset label" data-reset>Reset view</button>
+  </div>
+
+  <div class="copy wrap">
+    <p class="label kicker">GIS and data analyst, Nairobi</p>
+    <h1 id="hero-h">
+      I work out <em>where a thing should go</em> using data that already exists, then check it against the ground.
+    </h1>
+    <p class="sub">
+      This map is live. Click any farm or nursery site. Switch the walking limit and the network redraws. Below it, the
+      same farms feed a dashboard you can filter.
+    </p>
+    <p class="cta">
+      <a class="btn" href="#analytics">See the analytics</a>
+      <a class="btn ghost" href="/work/">All work</a>
+    </p>
+  </div>
+
+  <p class="cap label">
+    3,000 generated farms and their nursery sites on public elevation data. No real farms or locations.
+  </p>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    height: calc(100svh - 4.5rem);
+    min-height: 34rem;
+    max-height: 64rem;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .map {
+    position: absolute;
+    inset: 0;
+    height: auto;
+    background: radial-gradient(ellipse at 60% 40%, #141914, var(--bg));
+  }
+
+  /* Darkens the lower left so the headline reads over the map. Lets every click through. */
+  .shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to top, var(--bg) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 28%, transparent 55%),
+      linear-gradient(to right, color-mix(in srgb, var(--bg) 75%, transparent) 0%, transparent 45%);
+  }
+
+  .copy {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: clamp(3rem, 7vh, 5rem);
+    pointer-events: none;
+  }
+
+  .copy a {
+    pointer-events: auto;
+  }
+
+  .kicker {
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(2.1rem, min(5.2vw, 8.5svh), 5rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    max-width: 17ch;
+    text-wrap: balance;
+    text-shadow: 0 2px 24px var(--bg);
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .sub {
+    margin-top: 1.25rem;
+    max-width: 44ch;
+    font-size: clamp(0.95rem, min(1.4vw, 2.4svh), 1.2rem);
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--ink) 85%, var(--bg));
+    text-shadow: 0 1px 12px var(--bg);
+  }
+
+  .cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.7rem 1.1rem;
+    background: var(--ink);
+    color: var(--bg);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 999px;
+  }
+
+  .btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--ink) 40%, transparent);
+  }
+
+  .btn.ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .panel {
+    position: absolute;
+    top: 1rem;
+    right: var(--gutter);
+    display: grid;
+    gap: 0.75rem;
+    width: min(18rem, calc(100% - 2 * var(--gutter) - 3rem));
+    padding: 0.9rem 1rem;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+  }
+
+  .seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .seg legend {
+    width: 100%;
+    padding: 0 0 0.3rem;
+  }
+
+  .seg label {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .seg[hidden],
+  .legend[hidden] {
+    display: none;
+  }
+
+  .legend {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .ramp {
+    height: 0.5rem;
+    background: linear-gradient(to right, var(--accent), #b8c25a, var(--warm));
+  }
+
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+  }
+
+  .qa li {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .qa i {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  .qa .a {
+    background: var(--accent);
+  }
+
+  .qa .b {
+    background: #8a8c88;
+  }
+
+  .qa .c {
+    background: var(--warm);
+  }
+
+  .stat {
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.4;
+  }
+
+  .reset {
+    justify-self: start;
+    padding: 0.3rem 0.6rem;
+    background: none;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+
+  .reset:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .cap {
+    position: absolute;
+    right: calc(var(--gutter) + 3rem);
+    bottom: 0.6rem;
+    max-width: 32ch;
+    text-align: right;
+    font-size: 0.625rem;
+    pointer-events: none;
+  }
+
+  /* Pop-ups: dark cards that match the site. */
+  .hero :global(.maplibregl-popup-content) {
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 0.85rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.5);
+  }
+
+  .hero :global(.maplibregl-popup-tip) {
+    border-top-color: var(--bg) !important;
+    border-bottom-color: var(--bg) !important;
+  }
+
+  .hero :global(.maplibregl-popup-close-button) {
+    color: var(--muted);
+    font-size: 1.1rem;
+    padding: 0 0.4rem;
+  }
+
+  .hero :global(.pop strong) {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-family: var(--display);
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .hero :global(.pop dl) {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.15rem 1rem;
+    margin: 0;
+  }
+
+  .hero :global(.pop dt) {
+    color: var(--muted);
+  }
+
+  .hero :global(.pop dd) {
+    margin: 0;
+    text-align: right;
+  }
+
+  .hero :global(.pop button) {
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.6rem;
+    font: inherit;
+    color: var(--bg);
+    background: var(--accent);
+    border: 0;
+    cursor: pointer;
+  }
+
+  .hero :global(.maplibregl-ctrl-group) {
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+
+  .hero :global(.maplibregl-ctrl-group button + button) {
+    border-top-color: var(--line);
+  }
+
+  .hero :global(.maplibregl-ctrl-icon) {
+    filter: invert(1);
+  }
+
+  @media (max-width: 760px) {
+    .hero {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map {
+      position: relative;
+      inset: auto;
+      height: 62svh;
+      order: 2;
+    }
+
+    .shade {
+      display: none;
+    }
+
+    .copy {
+      position: static;
+      order: 1;
+      padding-block: 2rem 1.5rem;
+    }
+
+    .panel {
+      position: static;
+      order: 3;
+      width: auto;
+      margin: 0;
+      backdrop-filter: none;
+      border-width: 1px 0 0;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .panel .stat,
+    .panel .legend {
+      grid-column: 1 / -1;
+    }
+
+    .cap {
+      position: static;
+      order: 4;
+      text-align: left;
+      max-width: none;
+      padding: 0.6rem var(--gutter) 1rem;
+    }
+  }
+</style>
+
+<script>
+  import { ACCENT, BG, GREY, INK, WARM, boundsOf, loadMap, num } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-hero]');
+  const $ = (s) => root.querySelector(s);
+  const fc = (features) => ({ type: 'FeatureCollection', features });
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wide = matchMedia('(min-width: 761px)').matches;
+  // On wide screens the headline covers the left of the map and the panel the top right, so fit the data into the space between.
+  const pad = () => (wide ? { top: 70, bottom: 90, left: Math.round(innerWidth * 0.42), right: 320 } : 24);
+  const UNIT = (u) => `Unit ${String(u + 1).padStart(2, '0')}`;
+  const REGION = (u) => ['North', 'Central', 'South'][Math.floor(u / 4)];
+  const FARM = (i) => `F-${String(i + 1).padStart(4, '0')}`;
+  const SITE = (s) => `N-${String(s + 1).padStart(3, '0')}`;
+
+  function el(tag, props = {}, ...kids) {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...kids);
+    return e;
+  }
+
+  function popBody(title, rows, button) {
+    const dl = el('dl');
+    for (const [k, v] of rows) dl.append(el('dt', { textContent: k }), el('dd', { textContent: v }));
+    const box = el('div', { className: 'pop' }, el('strong', { textContent: title }), dl);
+    if (button) box.append(button);
+    return box;
+  }
+
+  (async () => {
+    const [gl, data, qa] = await Promise.all([
+      loadMap(),
+      fetch('/data/nursery.json').then((r) => r.json()),
+      fetch('/data/qa.geojson').then((r) => r.json()),
+    ]);
+
+    const farmBounds = boundsOf(data.farms);
+    const map = new gl.Map({
+      container: $('[data-map]'),
+      style: 'https://tiles.openfreemap.org/styles/dark',
+      bounds: farmBounds,
+      fitBoundsOptions: { padding: pad() },
+      pitch: wide ? 40 : 0,
+      maxPitch: 70,
+      cooperativeGestures: true,
+      attributionControl: { compact: true },
+    });
+    map.addControl(new gl.NavigationControl({ visualizePitch: true }), wide ? 'bottom-right' : 'top-right');
+
+    let limit = '30';
+    let selected = null; // a unit index, or null for all
+    let popup = null;
+
+    // Everything the map draws for one walking limit, built once per switch.
+    function build(l) {
+      const sc = data.scenarios[l];
+      const served = sc.sites.map(() => []);
+      sc.assign.forEach((s, i) => served[s].push(i));
+      const farms = data.farms.map((c, i) => ({
+        type: 'Feature',
+        id: i,
+        properties: { i, u: data.unit[i], s: sc.assign[i], min: sc.min[i], m: sc.m[i], alt: sc.alt[i] },
+        geometry: { type: 'Point', coordinates: c },
+      }));
+      const links = data.farms.map((c, i) => ({
+        type: 'Feature',
+        properties: { s: sc.assign[i], u: data.unit[i], min: sc.min[i] },
+        geometry: { type: 'LineString', coordinates: [c, data.farms[sc.sites[sc.assign[i]]]] },
+      }));
+      const sites = sc.sites.map((f, s) => {
+        const mins = served[s].map((i) => sc.min[i]);
+        const units = [...new Set(served[s].map((i) => data.unit[i]))];
+        return {
+          type: 'Feature',
+          id: s,
+          properties: {
+            s,
+            n: mins.length,
+            avg: mins.reduce((a, b) => a + b, 0) / (mins.length || 1),
+            max: Math.max(0, ...mins),
+            u: data.unit[f],
+            units: units.map(UNIT).join(', '),
+          },
+          geometry: { type: 'Point', coordinates: data.farms[f] },
+        };
+      });
+      return { farms: fc(farms), links: fc(links), sites: fc(sites), stats: sc.stats, served };
+    }
+
+    let cur = build(limit);
+
+    const walkColour = () => {
+      const l = Number(limit);
+      return ['interpolate', ['linear'], ['get', 'min'], 0, ACCENT, l * 0.55, '#b8c25a', l, WARM];
+    };
+    const unitOpacity = (on, off) => (selected === null ? on : ['case', ['==', ['get', 'u'], selected], on, off]);
+
+    function paintAll() {
+      map.setPaintProperty('farms', 'circle-color', walkColour());
+      map.setPaintProperty('farms', 'circle-opacity', unitOpacity(0.95, 0.12));
+      map.setPaintProperty('links', 'line-opacity', unitOpacity(0.22, 0.03));
+      map.setPaintProperty('sites', 'circle-opacity', unitOpacity(1, 0.25));
+      map.setPaintProperty('sites', 'circle-stroke-opacity', unitOpacity(1, 0.25));
+      $('[data-limit-end]').textContent = `${limit} min`;
+    }
+
+    function showStat() {
+      const s = cur.stats;
+      const scope = selected === null ? '' : `${UNIT(selected)}: ${num.format(data.unit.filter((u) => u === selected).length)} farms. `;
+      $('[data-stat]').textContent = `${scope}${s.sites} sites, ${s.farmsPerSite} farms per site, average walk ${s.avgMin} min, ${s.secondOptionPct}% can reach a second site.`;
+    }
+
+    function openFarm(i, lngLat) {
+      const p = cur.farms.features[i].properties;
+      const go = el('button', { type: 'button', textContent: `Show ${UNIT(p.u)} in the dashboard` });
+      go.addEventListener('click', () => {
+        select(p.u, 'map');
+        document.getElementById('analytics')?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+      });
+      setPopup(
+        lngLat ?? data.farms[i],
+        popBody(
+          `Farm ${FARM(i)}`,
+          [
+            ['Project unit', `${UNIT(p.u)}, ${REGION(p.u)}`],
+            ['Nursery', SITE(p.s)],
+            ['Walk', `${p.min.toFixed(1)} min`],
+            ['Distance', `${num.format(p.m)} m`],
+            ['Second site in range', p.alt ? 'Yes' : 'No'],
+          ],
+          go,
+        ),
+      );
+    }
+
+    function openSite(s, anchor) {
+      const p = cur.sites.features[s].properties;
+      setPopup(
+        cur.sites.features[s].geometry.coordinates,
+        popBody(`Nursery ${SITE(s)}`, [
+          ['Farms served', num.format(p.n)],
+          ['Average walk', `${p.avg.toFixed(1)} min`],
+          ['Longest walk', `${p.max.toFixed(1)} min`],
+          ['Units reached', p.units],
+        ]),
+        anchor,
+      );
+    }
+
+    function setPopup(at, body, anchor) {
+      popup?.remove();
+      popup = new gl.Popup({ maxWidth: '20rem', offset: 12, focusAfterOpen: false, ...(anchor ? { anchor } : {}) })
+        .setLngLat(at)
+        .setDOMContent(body)
+        .addTo(map);
+    }
+
+    function highlight(s) {
+      map.setFilter('links-hi', ['==', ['get', 's'], s ?? -1]);
+    }
+
+    // Selecting a unit, from the map or from the dashboard. Both listen to the same event.
+    function select(u, from) {
+      selected = u;
+      window.__unitSel = u; // the dashboard loads lazily and reads this when it starts
+      paintAll();
+      showStat();
+      if (from !== 'map') {
+        const pts = data.farms.filter((_, i) => u === null || data.unit[i] === u);
+        map.fitBounds(boundsOf(pts), { padding: pad(), duration: reduced ? 0 : 1600, pitch: wide ? 40 : 0 });
+      }
+      if (from !== 'dashboard') window.dispatchEvent(new CustomEvent('unit:select', { detail: { unit: u, from: 'map' } }));
+    }
+    window.addEventListener('unit:select', (e) => {
+      if (e.detail.from !== 'map' && $('[name="hero-layer"]:checked').value === 'nursery') select(e.detail.unit, 'dashboard');
+    });
+
+    function setLayer(kind) {
+      const nursery = kind === 'nursery';
+      for (const id of ['links', 'links-hi', 'farms', 'sites']) map.setLayoutProperty(id, 'visibility', nursery ? 'visible' : 'none');
+      for (const id of ['qa-fill', 'qa-line']) map.setLayoutProperty(id, 'visibility', nursery ? 'none' : 'visible');
+      $('[data-limit-pick]').hidden = !nursery;
+      $('[data-legend-nursery]').hidden = !nursery;
+      $('[data-legend-qa]').hidden = nursery;
+      popup?.remove();
+      if (nursery) {
+        showStat();
+        map.fitBounds(farmBounds, { padding: pad(), pitch: wide ? 40 : 0, duration: reduced ? 0 : 1500 });
+      } else {
+        const n = qa.features.length;
+        const fix = qa.features.filter((f) => f.properties.suggested_queue === 'C').length;
+        $('[data-stat]').textContent = `${n} generated polygons, each built to trip one check or none. ${fix} land in the fix queue. Click one for the rule engine's note.`;
+        map.fitBounds(boundsOf(qa.features.flatMap((f) => f.geometry.coordinates[0])), { padding: pad(), pitch: 0, duration: reduced ? 0 : 1500 });
+      }
+    }
+
+    map.on('load', () => {
+      // The credits start folded, so on a phone they do not sit over the first pop-up. One tap opens them.
+      const attrib = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+      attrib?.classList.remove('maplibregl-compact-show');
+      attrib?.removeAttribute('open');
+
+      // Public elevation tiles. Hillshade everywhere; the 3D surface only on wide screens.
+      map.addSource('dem', {
+        type: 'raster-dem',
+        tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 12,
+        attribution: 'Elevation: Mapzen Terrain Tiles (AWS Open Data)',
+      });
+      const firstSymbol = map.getStyle().layers.find((l) => l.type === 'symbol')?.id;
+      map.addLayer(
+        {
+          id: 'hillshade',
+          type: 'hillshade',
+          source: 'dem',
+          paint: { 'hillshade-shadow-color': '#000000', 'hillshade-highlight-color': '#3a423a', 'hillshade-accent-color': '#000000', 'hillshade-exaggeration': 0.55 },
+        },
+        firstSymbol,
+      );
+      if (wide) map.setTerrain({ source: 'dem', exaggeration: 1.6 });
+
+      map.addSource('links', { type: 'geojson', data: cur.links });
+      map.addSource('farms', { type: 'geojson', data: cur.farms });
+      map.addSource('sites', { type: 'geojson', data: cur.sites });
+      map.addSource('qa', { type: 'geojson', data: qa });
+
+      map.addLayer({ id: 'links', type: 'line', source: 'links', paint: { 'line-color': INK, 'line-width': 0.6, 'line-opacity': 0.22 } });
+      map.addLayer({ id: 'links-hi', type: 'line', source: 'links', filter: ['==', ['get', 's'], -1], paint: { 'line-color': ACCENT, 'line-width': 1.6, 'line-opacity': 0.9 } });
+      map.addLayer({
+        id: 'farms',
+        type: 'circle',
+        source: 'farms',
+        paint: {
+          'circle-color': walkColour(),
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 2.4, 11, 3.6, 14, 7],
+          'circle-stroke-color': BG,
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 9, 0, 12, 0.8],
+        },
+      });
+      map.addLayer({
+        id: 'sites',
+        type: 'circle',
+        source: 'sites',
+        paint: {
+          'circle-color': BG,
+          'circle-stroke-color': INK,
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 7, 1.2, 10, 2],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 9, 4.5, 12, 8, 14, 11],
+        },
+      });
+      const qaColour = ['match', ['get', 'suggested_queue'], 'A', ACCENT, 'B', GREY, WARM];
+      map.addLayer({ id: 'qa-fill', type: 'fill', source: 'qa', layout: { visibility: 'none' }, paint: { 'fill-color': qaColour, 'fill-opacity': 0.45 } });
+      map.addLayer({ id: 'qa-line', type: 'line', source: 'qa', layout: { visibility: 'none' }, paint: { 'line-color': qaColour, 'line-width': 1.5 } });
+      paintAll();
+      showStat();
+
+      // Clicks. Sites sit on top of farms, so a site wins where they overlap.
+      map.on('click', (e) => {
+        const hit = map.queryRenderedFeatures(e.point, { layers: ['sites', 'farms', 'qa-fill'].filter((id) => map.getLayoutProperty(id, 'visibility') !== 'none') });
+        if (!hit.length) return;
+        const f = hit[0];
+        if (f.layer.id === 'sites') openSite(f.properties.s);
+        else if (f.layer.id === 'farms') openFarm(f.properties.i, e.lngLat);
+        else {
+          const p = f.properties;
+          setPopup(e.lngLat, popBody(`Polygon ${p.fg_id}`, [
+            ['Fault planted', String(p.fault).replaceAll('_', ' ')],
+            ['Flags raised', p.flags ? String(p.flags).replaceAll(';', ', ') : 'none'],
+            ['Queue', p.suggested_queue],
+          ]));
+          const note = el('p', { textContent: p.flag_notes || 'No flags raised.' });
+          note.style.cssText = 'margin-top:.5rem;max-width:30ch;color:var(--muted)';
+          popup.getElement().querySelector('.pop').append(note);
+        }
+      });
+      for (const id of ['farms', 'sites', 'qa-fill']) {
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'));
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = ''));
+      }
+      map.on('mousemove', 'sites', (e) => highlight(e.features[0].properties.s));
+      map.on('mouseleave', 'sites', () => highlight(null));
+
+      // Controls.
+      root.addEventListener('change', (e) => {
+        if (e.target.name === 'hero-limit') {
+          limit = e.target.value;
+          cur = build(limit);
+          map.getSource('links').setData(cur.links);
+          map.getSource('farms').setData(cur.farms);
+          map.getSource('sites').setData(cur.sites);
+          popup?.remove();
+          highlight(null);
+          paintAll();
+          showStat();
+        }
+        if (e.target.name === 'hero-layer') setLayer(e.target.value);
+      });
+      $('[data-reset]').addEventListener('click', () => {
+        if ($('[name="hero-layer"]:checked').value !== 'nursery') {
+          $('[name="hero-layer"][value="nursery"]').checked = true;
+          setLayer('nursery');
+        }
+        select(null, 'reset');
+      });
+
+      // Open the busiest site's pop-up once the map has settled, so the first look already shows what a click does.
+      map.once('idle', () => {
+        // Only sites in the open part of the map, so the headline and the panel do not cover the pop-up.
+        // On wide screens this first pop-up opens to the right of its point (about 270 x 190 px), so it needs a site
+        // right of the headline's actual text lines and clear of the panel. Element boxes are wider than their text.
+        const box = map.getContainer().getBoundingClientRect();
+        let open = cur.sites.features;
+        if (wide) {
+          const lines = [...root.querySelectorAll('.copy h1, .copy .sub, .copy .btn')].flatMap((e) => {
+            const range = document.createRange();
+            range.selectNodeContents(e);
+            return [...range.getClientRects()];
+          });
+          const textRight = Math.max(...lines.map((r) => r.right)) - box.left;
+          const panel = $('[data-panel]').getBoundingClientRect();
+          open = open.filter((f) => {
+            const { x, y } = map.project(f.geometry.coordinates);
+            const clearOfPanel = x + 280 < panel.left - box.left || y - 100 > panel.bottom - box.top;
+            return x > textRight + 24 && x + 280 < box.width - 60 && y > 110 && y < box.height - 110 && clearOfPanel;
+          });
+        }
+        const busiest = (open.length ? open : cur.sites.features).reduce((a, b) => (b.properties.n > a.properties.n ? b : a));
+        openSite(busiest.properties.s, wide && open.length ? 'left' : undefined);
+        highlight(busiest.properties.s);
+        if (wide && !reduced) map.easeTo({ bearing: -18, duration: 24000, easing: (t) => t });
+      });
+    });
+  })();
+</script>

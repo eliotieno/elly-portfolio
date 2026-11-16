@@ -93,6 +93,10 @@ def nursery(unit, lon, lat):
         scenarios[str(limit)] = {
             "sites": sites,
             "assign": nearest.tolist(),
+            # Per farm: walk in minutes, distance in metres, and whether a second site is also within the limit.
+            "min": [round(float(v), 1) for v in t],
+            "m": [int(round(float(v))) for v in d],
+            "alt": (reach[:, sites].sum(axis=1) >= 2).astype(int).tolist(),
             "stats": {
                 "sites": len(sites),
                 "avgMin": round(float(t.mean()), 1),
@@ -105,6 +109,7 @@ def nursery(unit, lon, lat):
         print(f"  {limit} min: {len(sites)} sites, avg {t.mean():.1f} min")
     return {
         "farms": [[round(float(a), 5), round(float(b), 5)] for a, b in zip(lon, lat)],
+        "unit": unit.tolist(),  # index into the KPI demo's units, so the map and the charts can filter each other
         "scenarios": scenarios,
     }
 

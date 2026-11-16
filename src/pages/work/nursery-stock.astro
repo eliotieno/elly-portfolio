@@ -1,5 +1,6 @@
 ---
 import CaseStudy from '../../layouts/CaseStudy.astro';
+import PowerBIEmbed from '../../components/PowerBIEmbed.astro';
 import CtnDashboard from '../../components/CtnDashboard.astro';
 ---
 
@@ -10,7 +11,9 @@ import CtnDashboard from '../../components/CtnDashboard.astro';
     ['Tools', 'Power BI Desktop, Power Query, DAX, Python'],
     ['Source', 'One Excel log on SharePoint, updated weekly'],
   ]}
->
+>  <PowerBIEmbed slug="nursery-stock" title="Nursery stock" />
+
+
   <section class="split">
     <h2 class="label">Problem</h2>
     <div class="prose">

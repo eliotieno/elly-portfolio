@@ -1,5 +1,6 @@
 ---
 import CaseStudy from '../../layouts/CaseStudy.astro';
+import PowerBIEmbed from '../../components/PowerBIEmbed.astro';
 import RetailDashboard from '../../components/RetailDashboard.astro';
 
 const measures = [
@@ -25,7 +26,9 @@ const measures = [
     ['Tools', 'Power BI Desktop, Power Query, DAX'],
     ['Report', 'Six pages, each with a desktop and a phone layout'],
   ]}
->
+>  <PowerBIEmbed slug="retail-analytics" title="Retail analytics" />
+
+
   <section class="split">
     <h2 class="label">Problem</h2>
     <div class="prose">

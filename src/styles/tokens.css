@@ -1,25 +1,20 @@
-/* The whole palette: two neutrals and one green. --muted and --line are mixes of the two neutrals. */
+/* The whole palette: two neutrals and one green, dark only. --muted and --line are mixes of the two neutrals.
+   --warm is used for one thing: the longest walks on the map, so the eye finds the far farms. */
 :root {
-  --bg: #f6f5f0;
-  --ink: #121412;
-  --accent: #1c6b3c;
+  --bg: #0b0d0b;
+  --ink: #edece6;
+  --accent: #63c283;
+  --warm: #e0b04a;
   --muted: color-mix(in srgb, var(--ink) 62%, var(--bg));
   --line: color-mix(in srgb, var(--ink) 16%, var(--bg));
+  --panel: color-mix(in srgb, var(--ink) 5%, var(--bg));
 
   --display: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 
   --gutter: clamp(1rem, 4vw, 3.5rem);
   --section: clamp(4rem, 10vw, 9rem);
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e100e;
-    --ink: #edece6;
-    --accent: #63c283;
-  }
+  color-scheme: dark;
 }
 
 *,

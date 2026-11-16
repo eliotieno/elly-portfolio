@@ -1,0 +1,349 @@
+---
+import data from '../../public/data/kpi.json';
+---
+
+<section class="wrap analytics" id="analytics" data-analytics aria-labelledby="an-h">
+  <header class="head">
+    <p class="label">Analytics</p>
+    <h2 id="an-h">The same farms, as a dashboard you can question.</h2>
+    <p class="lede">
+      Click a project unit in the first chart. The cards, the other charts and the map above all follow it. Click it
+      again to clear. Hover any bar or point for the number behind it.
+    </p>
+  </header>
+
+  <div class="frame">
+    <div class="bar">
+      <div class="chips" role="group" aria-label="Region">
+        <button type="button" data-region="" aria-pressed="true">All regions</button>
+        {data.regions.map((r) => <button type="button" data-region={r} aria-pressed="false">{r}</button>)}
+      </div>
+      <p class="label scope" data-scope aria-live="polite">All 12 project units</p>
+      <button type="button" class="label clear" data-clear hidden>Clear unit</button>
+    </div>
+
+    <div class="cards" data-cards></div>
+
+    <div class="grid">
+      <figure class="wide-l">
+        <figcaption class="label">Farmers visited this season, by project unit. Click a bar.</figcaption>
+        <div data-chart="units"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Weekly field visits, NEST and ROOT forms</figcaption>
+        <div data-chart="weekly"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Contracts signed, cumulative</figcaption>
+        <div data-chart="signed"></div>
+      </figure>
+      <figure>
+        <figcaption class="label">Farmers by status</figcaption>
+        <div data-chart="status"></div>
+      </figure>
+    </div>
+    <noscript><p>The charts need JavaScript.</p></noscript>
+    <p class="foot label">
+      Generated farmers, visits and contracts. The counting rules are the ones in the real Program KPI model: one visit
+      per farmer per day, contracts measured against active and reinstated farmers only.
+      <a href="/work/program-kpi/">How the model was built</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .analytics {
+    padding-block: var(--section) clamp(2rem, 5vw, 4rem);
+  }
+
+  .head {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  h2 {
+    font-size: clamp(2rem, 4.6vw, 4rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 52ch;
+    color: var(--muted);
+    font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  }
+
+  .frame {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .chips button,
+  .clear {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.8rem;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .chips button[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .chips button:hover,
+  .clear:hover {
+    border-color: var(--accent);
+  }
+
+  .scope {
+    color: var(--accent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem clamp(1.5rem, 3vw, 3rem);
+  }
+
+  .grid figure > .label {
+    display: block;
+    margin-bottom: 0.6rem;
+  }
+
+  .wide-l {
+    grid-row: span 2;
+  }
+
+  .foot {
+    margin-top: 1.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+
+  .foot a {
+    color: var(--ink);
+    margin-left: 0.4rem;
+  }
+
+  [data-chart='units'] :global(rect[data-u]) {
+    cursor: pointer;
+  }
+
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wide-l {
+      grid-row: auto;
+    }
+  }
+</style>
+
+<script>
+  import { accent, card, num, pct, plotBase, redrawOn, whenVisible } from '../lib/demo.js';
+
+  const root = document.querySelector('[data-analytics]');
+  const $ = (s) => root.querySelector(s);
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  const DAY = 86400000;
+
+  whenVisible(root, async () => {
+    const [Plot, data] = await Promise.all([import('@observablehq/plot'), fetch('/data/kpi.json').then((r) => r.json())]);
+    const dates = (start, n, step) => Array.from({ length: n }, (_, i) => new Date(Date.parse(start) + i * step * DAY));
+    const weeks = dates(data.seasonStart, data.units[0].nestW.length, 7);
+    const days = dates(data.signStart, data.units[0].signedD.length, 1);
+    const WARM = getComputedStyle(document.documentElement).getPropertyValue('--warm').trim();
+
+    let region = '';
+    let unit = window.__unitSel ?? null; // index into data.units; the map may have picked one before this loaded
+
+    const inRegion = () => data.units.map((u, i) => [u, i]).filter(([u]) => !region || u.region === region);
+    const scope = () => (unit === null ? inRegion().map(([u]) => u) : [data.units[unit]]);
+
+    const charts = {
+      units(el, green) {
+        const rows = inRegion().map(([u, i]) => ({ name: u.name, i, share: 1 - u.mix[3] / u.base, visited: u.base - u.mix[3], base: u.base }));
+        const avg = sum(rows.map((r) => r.visited)) / sum(rows.map((r) => r.base));
+        const fig = Plot.plot(
+          plotBase(el, {
+            height: 40 + rows.length * 30,
+            marginLeft: 64,
+            marginRight: 16,
+            x: { label: null, grid: true, percent: true, domain: [0, 100] },
+            y: { label: null, domain: rows.map((r) => r.name) },
+            marks: [
+              Plot.barX(rows, {
+                y: 'name',
+                x: 'share',
+                fill: (r) => (unit === null || r.i === unit ? green : 'currentColor'),
+                fillOpacity: (r) => (unit === null || r.i === unit ? 0.9 : 0.25),
+              }),
+              Plot.ruleX([avg], { stroke: WARM, strokeDasharray: '3,3' }),
+              Plot.text([avg], { x: (d) => d, y: rows[0]?.name, text: () => 'average', dy: -12, fill: WARM, textAnchor: 'start', dx: 4 }),
+              Plot.tip(rows, Plot.pointerY({ y: 'name', x: 'share', title: (r) => `${r.name}\n${pct(r.share)} visited\n${num.format(r.visited)} of ${num.format(r.base)} farmers` })),
+              Plot.ruleX([0]),
+            ],
+          }),
+        );
+        // Plot draws one rect per row, in row order. Tag each so a click knows its unit.
+        const rects = fig.querySelectorAll('g[aria-label="bar"] rect');
+        rects.forEach((r, k) => {
+          r.dataset.u = rows[k].i;
+          r.addEventListener('click', () => pick(rows[k].i, 'dashboard'));
+        });
+        // The tip layer sits on top, so clicks land on the svg. Map the pointer's row back to a unit.
+        fig.addEventListener('click', (e) => {
+          if (e.target.closest('rect[data-u]')) return;
+          const v = fig.value ?? null;
+          if (v) pick(v.i, 'dashboard');
+        });
+        return fig;
+      },
+      weekly(el, green) {
+        const us = scope();
+        const rows = weeks.flatMap((w, k) => [
+          { w, form: 'NEST', n: sum(us.map((u) => u.nestW[k])) },
+          { w, form: 'ROOT', n: sum(us.map((u) => u.rootW[k])) },
+        ]);
+        return Plot.plot(
+          plotBase(el, {
+            height: 240,
+            marginLeft: 44,
+            x: { label: null },
+            y: { label: null, grid: true },
+            color: { domain: ['NEST', 'ROOT'], range: [green, WARM], legend: true },
+            marks: [
+              Plot.rectY(rows, { x: 'w', y: 'n', fill: 'form', interval: 'week', fillOpacity: 0.85 }),
+              Plot.tip(rows, Plot.pointerX(Plot.stackY({ x: 'w', y: 'n', fill: 'form', interval: 'week', title: (r) => `Week of ${r.w.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}\n${r.form}: ${num.format(r.n)} visits` }))),
+              Plot.ruleY([0]),
+            ],
+          }),
+        );
+      },
+      signed(el, green) {
+        const us = scope();
+        let run = 0;
+        const base = sum(us.map((u) => u.base));
+        const rows = days.map((d, k) => ({ d, n: (run += sum(us.map((u) => u.signedD[k]))) }));
+        return Plot.plot(
+          plotBase(el, {
+            height: 240,
+            marginLeft: 48,
+            x: { label: null },
+            y: { label: null, grid: true, domain: [0, base] },
+            marks: [
+              Plot.ruleY([base], { stroke: 'currentColor', strokeOpacity: 0.35, strokeDasharray: '3,3' }),
+              Plot.text([base], { y: (d) => d, x: days[0], text: () => 'eligible farmers', dy: -8, textAnchor: 'start', fillOpacity: 0.6 }),
+              Plot.areaY(rows, { x: 'd', y: 'n', fill: green, fillOpacity: 0.15 }),
+              Plot.lineY(rows, { x: 'd', y: 'n', stroke: green, strokeWidth: 2 }),
+              Plot.tip(rows, Plot.pointerX({ x: 'd', y: 'n', title: (r) => `${r.d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}\n${num.format(r.n)} signed, ${pct(r.n / base)}` })),
+              Plot.ruleY([0]),
+            ],
+          }),
+        );
+      },
+      status(el, green) {
+        const us = scope();
+        const rows = data.statuses.map((s, k) => ({ s, n: sum(us.map((u) => u.status[k])), base: k < 2 }));
+        return Plot.plot(
+          plotBase(el, {
+            height: 40 + rows.length * 26,
+            marginLeft: 130,
+            x: { label: null, grid: true },
+            y: { label: null, domain: rows.map((r) => r.s) },
+            marks: [
+              Plot.barX(rows, { y: 's', x: 'n', fill: (r) => (r.base ? green : 'currentColor'), fillOpacity: (r) => (r.base ? 0.9 : 0.4) }),
+              Plot.tip(rows, Plot.pointerY({ y: 's', x: 'n', title: (r) => `${r.s}: ${num.format(r.n)} farmers` })),
+              Plot.ruleX([0]),
+            ],
+          }),
+        );
+      },
+    };
+
+    function draw() {
+      const green = accent();
+      const us = scope();
+      const base = sum(us.map((u) => u.base));
+      const signed = sum(us.map((u) => sum(u.signedD)));
+      const notVisited = sum(us.map((u) => u.mix[3]));
+      $('[data-cards]').replaceChildren(
+        ...[
+          ['Active and reinstated farmers', num.format(base)],
+          ['Visited this season', pct((base - notVisited) / base)],
+          ['Contracts signed', pct(signed / base)],
+          ['Trees outplanted', num.format(sum(us.map((u) => u.trees)))],
+          ['Visit days logged', num.format(sum(us.map((u) => u.visitDays)))],
+        ].map(([l, v]) => card(l, v)),
+      );
+      for (const [key, fn] of Object.entries(charts)) {
+        const el = root.querySelector(`[data-chart="${key}"]`);
+        el.replaceChildren(fn(el, green));
+      }
+      const n = inRegion().length;
+      $('[data-scope]').textContent =
+        unit === null ? `${region || 'All'} ${region ? 'region, ' : ''}${n} project units` : `${data.units[unit].name}, ${data.units[unit].region}. The map above is zoomed to it.`;
+      $('[data-clear]').hidden = unit === null;
+    }
+
+    function pick(u, from) {
+      unit = u === unit ? null : u;
+      window.__unitSel = unit;
+      if (unit !== null && region && data.units[unit].region !== region) setRegion('', false);
+      draw();
+      if (from !== 'map') window.dispatchEvent(new CustomEvent('unit:select', { detail: { unit, from: 'dashboard' } }));
+    }
+
+    function setRegion(r, redraw = true) {
+      region = r;
+      root.querySelectorAll('[data-region]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.region === r)));
+      if (redraw) {
+        const hadUnit = unit !== null;
+        unit = null;
+        draw();
+        if (hadUnit) window.dispatchEvent(new CustomEvent('unit:select', { detail: { unit: null, from: 'dashboard' } }));
+      }
+    }
+
+    root.querySelectorAll('[data-region]').forEach((b) => b.addEventListener('click', () => setRegion(b.dataset.region)));
+    $('[data-clear]').addEventListener('click', () => pick(unit, 'dashboard'));
+    window.addEventListener('unit:select', (e) => {
+      if (e.detail.from === 'dashboard') return;
+      unit = null; // pick() toggles, so start clear and set
+      if (e.detail.unit !== null) pick(e.detail.unit, 'map');
+      else draw();
+    });
+
+    redrawOn(root, draw);
+    draw();
+  });
+</script>

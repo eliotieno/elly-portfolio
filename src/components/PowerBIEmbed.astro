@@ -1,0 +1,99 @@
+---
+// The published Power BI report, loaded only when the visitor asks for it. Renders nothing until a link exists.
+import { embeds } from '../data/embeds.js';
+
+const { slug, title } = Astro.props;
+const url = embeds[slug];
+---
+
+{
+  url && (
+    <section class="pbi" data-pbi={url} aria-label={`${title}, Power BI report`}>
+      <div class="pbi-head">
+        <span class="label">The Power BI report itself, on generated data</span>
+        <a class="label" href={url} target="_blank" rel="noopener">
+          Open full screen
+        </a>
+      </div>
+      <div class="pbi-frame">
+        <button type="button" data-load>
+          <b>Load the live Power BI report</b>
+          <span class="label">Loads from app.powerbi.com. Best on a laptop or larger screen.</span>
+        </button>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .pbi {
+    margin-block: clamp(1.5rem, 4vw, 3rem);
+    border: 1px solid var(--line);
+  }
+
+  .pbi-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .pbi-head a {
+    color: var(--accent);
+  }
+
+  .pbi-frame {
+    position: relative;
+    aspect-ratio: 16 / 9.6;
+    background: var(--panel);
+  }
+
+  .pbi-frame :global(iframe),
+  .pbi-frame button {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .pbi-frame button {
+    display: grid;
+    place-content: center;
+    gap: 0.6rem;
+    color: var(--ink);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .pbi-frame button b {
+    font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+    font-weight: 600;
+  }
+
+  .pbi-frame button:hover b {
+    color: var(--accent);
+  }
+
+  @media (max-width: 760px) {
+    .pbi-frame {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll('[data-pbi]').forEach((root) => {
+    root.querySelector('[data-load]').addEventListener('click', (e) => {
+      const f = document.createElement('iframe');
+      f.src = root.dataset.pbi;
+      f.title = root.getAttribute('aria-label');
+      f.allowFullscreen = true;
+      f.loading = 'eager';
+      e.currentTarget.replaceWith(f);
+    });
+  });
+</script>
